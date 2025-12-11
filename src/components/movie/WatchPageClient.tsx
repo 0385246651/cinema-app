@@ -55,23 +55,34 @@ export function WatchPageClient({
   hasPrev,
   hasNext,
 }: WatchPageClientProps) {
+  const hasStream = Boolean(currentEpisode.link_m3u8);
+  const hasEmbed = Boolean(currentEpisode.link_embed);
+
   return (
     <>
       <div className="space-y-4">
         {/* Video Player with tracking */}
-        <VideoPlayer
-          src={currentEpisode.link_m3u8}
-          poster={poster}
-          title={`${movie.name} - ${currentEpisode.name}`}
-          movieSlug={movie.slug}
-          movieName={movie.name}
-          moviePoster={poster}
-          episodeSlug={currentEpisode.slug}
-          episodeName={currentEpisode.name}
-          serverIndex={serverIndex}
-          hasPrev={hasPrev}
-          hasNext={hasNext}
-        />
+        {hasStream ? (
+          <VideoPlayer
+            src={currentEpisode.link_m3u8}
+            poster={poster}
+            title={`${movie.name} - ${currentEpisode.name}`}
+            movieSlug={movie.slug}
+            movieName={movie.name}
+            moviePoster={poster}
+            episodeSlug={currentEpisode.slug}
+            episodeName={currentEpisode.name}
+            serverIndex={serverIndex}
+            hasPrev={hasPrev}
+            hasNext={hasNext}
+          />
+        ) : hasEmbed ? (
+          <EmbedPlayer src={currentEpisode.link_embed} />
+        ) : (
+          <div className="relative aspect-video bg-black/60 rounded-2xl flex items-center justify-center border border-white/10">
+            <p className="text-white/70 text-sm">Không có nguồn phát cho tập này.</p>
+          </div>
+        )}
 
         {/* Movie Actions - Favorite, Rating, Share */}
         <div className="glass-card p-4 rounded-xl">

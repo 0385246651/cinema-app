@@ -55,6 +55,7 @@ export function VideoPlayer({
   const hlsRef = useRef<Hls | null>(null);
   const saveProgressRef = useRef<NodeJS.Timeout | null>(null);
   const hasCountedViewRef = useRef(false);
+  const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -219,8 +220,17 @@ export function VideoPlayer({
 
     const handlePlay = () => setIsPlaying(true);
     const handlePause = () => setIsPlaying(false);
-    const handleWaiting = () => setIsLoading(true);
+    const handleWaiting = () => {
+      setIsLoading(true);
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+      }
+      // Fallback: if waiting takes too long, drop spinner to avoid feeling frozen.
+      loadingTimeoutRef.current = setTimeout(() => setIsLoading(false), 8000);
+    };
     const handleCanPlay = () => setIsLoading(false);
+    const handleLoadedData = () => setIsLoading(false);
+    const handlePlaying = () => setIsLoading(false);
 
     video.addEventListener('timeupdate', handleTimeUpdate);
     video.addEventListener('durationchange', handleDurationChange);
@@ -228,6 +238,8 @@ export function VideoPlayer({
     video.addEventListener('pause', handlePause);
     video.addEventListener('waiting', handleWaiting);
     video.addEventListener('canplay', handleCanPlay);
+    video.addEventListener('loadeddata', handleLoadedData);
+    video.addEventListener('playing', handlePlaying);
 
     return () => {
       video.removeEventListener('timeupdate', handleTimeUpdate);
@@ -236,6 +248,8 @@ export function VideoPlayer({
       video.removeEventListener('pause', handlePause);
       video.removeEventListener('waiting', handleWaiting);
       video.removeEventListener('canplay', handleCanPlay);
+      video.removeEventListener('loadeddata', handleLoadedData);
+      video.removeEventListener('playing', handlePlaying);
     };
   }, []);
 
@@ -359,8 +373,14 @@ export function VideoPlayer({
 
       {/* Loading Overlay */}
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-          <Loader2 className="w-12 h-12 animate-spin text-violet-500" />
+        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-black/80 via-black/60 to-black/80 backdrop-blur-sm">
+          <div className="flex items-center gap-3 px-4 py-3 rounded-full bg-white/5 border border-white/10 shadow-xl">
+            <Loader2 className="w-10 h-10 animate-spin text-violet-400" />
+            <div className="leading-tight">
+              <p className="text-white font-medium text-sm">Đang tải video...</p>
+              <p className="text-white/60 text-xs">Nếu lâu bất thường, thử đổi server hoặc tải lại trang.</p>
+            </div>
+          </div>
         </div>
       )}
 
