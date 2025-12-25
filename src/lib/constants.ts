@@ -36,5 +36,4 @@ export const NAV_ITEMS = [
   { name: "TV Shows", href: "/danh-sach/tv-shows" },
   { name: "Hoạt Hình", href: "/danh-sach/hoat-hinh" },
   { name: "Chiếu Rạp", href: "/danh-sach/phim-chieu-rap" },
-  { name: "Thuyết Minh", href: "/thuyet-minh" },
 ];

@@ -22,3 +22,4 @@ export { MovieReviews } from "./MovieReviews";
 export { MovieReviewsSection } from "./MovieReviewsSection";
 export { MovieDetailTabs } from "./MovieDetailTabs";
 export { LiveChat } from "./LiveChat";
+export { FilterBar } from "./FilterBar";

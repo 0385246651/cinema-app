@@ -1,10 +1,10 @@
 import { Metadata } from 'next';
-import { getMoviesByCountry, getCountries } from '@/lib/api';
-import { MovieGrid, Pagination } from '@/components/movie';
+import { getMoviesByCountry, getCountries, getCategories } from '@/lib/api';
+import { MovieGrid, Pagination, FilterBar } from '@/components/movie';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; year?: string; category?: string }>;
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -20,12 +20,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function CountryPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
-  const { page: pageParam } = await searchParams;
+  const { page: pageParam, year, category } = await searchParams;
   const page = parseInt(pageParam || '1');
 
-  const [data, countries] = await Promise.all([
+  const [data, countries, categories] = await Promise.all([
     getMoviesByCountry(slug, page, 24),
     getCountries(),
+    getCategories(),
   ]);
 
   const country = countries.find((c) => c.slug === slug);
@@ -35,7 +36,7 @@ export default async function CountryPage({ params, searchParams }: PageProps) {
   return (
     <div className="container mx-auto px-4 py-8 pt-16">
       {/* Header */}
-      <div className="mb-8">
+      <div className="mb-6">
         <h1 className="text-2xl md:text-3xl font-bold mb-2">
           <span className="gradient-text">Phim {country?.name || slug}</span>
         </h1>
@@ -45,6 +46,9 @@ export default async function CountryPage({ params, searchParams }: PageProps) {
           </p>
         )}
       </div>
+
+      {/* Filter Bar */}
+      <FilterBar countries={countries} categories={categories} baseUrl={`/quoc-gia/${slug}`} hideCountry />
 
       {/* Movie Grid */}
       <MovieGrid movies={movies} />

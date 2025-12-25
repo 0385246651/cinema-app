@@ -68,15 +68,26 @@ export async function getMovieDetail(
   return fetchApi<MovieDetailResponse>(`${API_BASE_URL}/phim/${slug}`);
 }
 
-// Get movie list by type (phim-bo, phim-le, tv-shows, hoat-hinh)
+// Get movie list by type (phim-bo, phim-le, tv-shows, hoat-hinh) with optional filters
 export async function getMoviesByType(
   type: string,
   page: number = 1,
-  limit: number = 24
+  limit: number = 24,
+  filters?: { year?: string; country?: string; category?: string }
 ): Promise<ApiListResponse> {
-  return fetchApi<ApiListResponse>(
-    `${API_V1_URL}/danh-sach/${type}?page=${page}&limit=${limit}`
-  );
+  let url = `${API_V1_URL}/danh-sach/${type}?page=${page}&limit=${limit}`;
+
+  if (filters?.year) {
+    url += `&year=${filters.year}`;
+  }
+  if (filters?.country) {
+    url += `&country=${filters.country}`;
+  }
+  if (filters?.category) {
+    url += `&category=${filters.category}`;
+  }
+
+  return fetchApi<ApiListResponse>(url);
 }
 
 // Search movies

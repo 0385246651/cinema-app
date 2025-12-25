@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import {
@@ -37,7 +37,6 @@ const menuIcons: Record<string, React.ReactNode> = {
   'TV Shows': <MonitorPlay className="w-4 h-4" />,
   'Hoạt Hình': <Smile className="w-4 h-4" />,
   'Chiếu Rạp': <Ticket className="w-4 h-4" />,
-  'Thuyết Minh': <Volume2 className="w-4 h-4" />,
 };
 
 const shortNames: Record<string, string> = {
@@ -47,7 +46,6 @@ const shortNames: Record<string, string> = {
   'TV Shows': 'TV',
   'Hoạt Hình': 'Anime',
   'Chiếu Rạp': 'Rạp',
-  'Thuyết Minh': 'T.Minh',
 };
 
 export function Navbar() {
@@ -63,6 +61,14 @@ export function Navbar() {
   const [authTimeout, setAuthTimeout] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [countries, setCountries] = useState<Country[]>([]);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Focus search input when opened
+  useEffect(() => {
+    if (showSearch && searchInputRef.current) {
+      setTimeout(() => searchInputRef.current?.focus(), 100);
+    }
+  }, [showSearch]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -132,7 +138,7 @@ export function Navbar() {
                   href={item.href}
                   title={item.name}
                   className={cn(
-                    'relative flex items-center gap-1.5 p-2.5 2xl:px-3 2xl:py-2 rounded-xl text-sm font-medium',
+                    'relative flex items-center gap-1.5 p-2.5 xl:px-3 xl:py-2 rounded-xl text-sm font-medium',
                     'transition-all duration-300',
                     pathname === item.href
                       ? 'text-white bg-white/10 shadow-lg shadow-white/5'
@@ -140,7 +146,7 @@ export function Navbar() {
                   )}
                 >
                   {menuIcons[item.name]}
-                  <span className="hidden 2xl:inline">{item.name}</span>
+                  <span className="hidden xl:inline">{item.name}</span>
                   {pathname === item.href && (
                     <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 bg-violet-500 rounded-full shadow-[0_0_8px_rgba(139,92,246,0.8)]" />
                   )}
@@ -270,12 +276,12 @@ export function Navbar() {
               <div className="relative flex-1">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
                 <input
+                  ref={searchInputRef}
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Nhập tên phim cần tìm..."
                   className="w-full pl-12 pr-4 py-3 bg-white/[0.05] border border-white/[0.12] rounded-xl text-white placeholder:text-white/40 focus:outline-none focus:border-violet-500/50 transition-colors"
-                  autoFocus
                 />
               </div>
               <button

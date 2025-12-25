@@ -1,10 +1,10 @@
 import { Metadata } from 'next';
-import { getMoviesByCategory, getCategories } from '@/lib/api';
-import { MovieGrid, Pagination } from '@/components/movie';
+import { getMoviesByCategory, getCategories, getCountries } from '@/lib/api';
+import { MovieGrid, Pagination, FilterBar } from '@/components/movie';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; year?: string; country?: string }>;
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -20,12 +20,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function CategoryPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
-  const { page: pageParam } = await searchParams;
+  const { page: pageParam, year, country } = await searchParams;
   const page = parseInt(pageParam || '1');
 
-  const [data, categories] = await Promise.all([
+  const [data, categories, countries] = await Promise.all([
     getMoviesByCategory(slug, page, 24),
     getCategories(),
+    getCountries(),
   ]);
 
   const category = categories.find((c) => c.slug === slug);
@@ -35,7 +36,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
   return (
     <div className="container mx-auto px-4 py-8 pt-16">
       {/* Header */}
-      <div className="mb-8">
+      <div className="mb-6">
         <h1 className="text-2xl md:text-3xl font-bold mb-2">
           <span className="gradient-text">Phim {category?.name || slug}</span>
         </h1>
@@ -45,6 +46,9 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
           </p>
         )}
       </div>
+
+      {/* Filter Bar */}
+      <FilterBar countries={countries} categories={categories} baseUrl={`/the-loai/${slug}`} hideCategory />
 
       {/* Movie Grid */}
       <MovieGrid movies={movies} />

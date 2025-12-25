@@ -1,11 +1,11 @@
 import { Metadata } from 'next';
-import { getMoviesByType, getNewMovies } from '@/lib/api';
-import { MovieGrid, Pagination } from '@/components/movie';
+import { getMoviesByType, getNewMovies, getCountries, getCategories } from '@/lib/api';
+import { MovieGrid, Pagination, FilterBar } from '@/components/movie';
 import { MOVIE_TYPES } from '@/lib/constants';
 
 interface PageProps {
   params: Promise<{ type: string }>;
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; year?: string; country?: string; category?: string }>;
 }
 
 const typeMap: Record<string, string> = {
@@ -36,12 +36,18 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function MovieListPage({ params, searchParams }: PageProps) {
   const { type } = await params;
-  const { page: pageParam } = await searchParams;
+  const { page: pageParam, year, country, category } = await searchParams;
   const page = parseInt(pageParam || '1');
 
   let movies = [];
   let pagination = null;
   let title = titleMap[type] || 'Danh sách phim';
+
+  // Fetch countries and categories for filter dropdowns
+  const [countries, categories] = await Promise.all([
+    getCountries(),
+    getCategories()
+  ]);
 
   if (type === 'phim-moi') {
     const data = await getNewMovies(page);
@@ -49,7 +55,7 @@ export default async function MovieListPage({ params, searchParams }: PageProps)
     pagination = data?.pagination;
   } else {
     const apiType = typeMap[type] || type;
-    const data = await getMoviesByType(apiType, page, 24);
+    const data = await getMoviesByType(apiType, page, 24, { year, country, category });
     movies = data?.data?.items || [];
     pagination = data?.data?.params?.pagination;
     title = titleMap[type] || data?.data?.titlePage || 'Danh sách phim';
@@ -58,7 +64,7 @@ export default async function MovieListPage({ params, searchParams }: PageProps)
   return (
     <div className="container mx-auto px-4 py-8 pt-16">
       {/* Header */}
-      <div className="mb-8">
+      <div className="mb-6">
         <h1 className="text-2xl md:text-3xl font-bold mb-2">
           <span className="gradient-text">{title}</span>
         </h1>
@@ -68,6 +74,11 @@ export default async function MovieListPage({ params, searchParams }: PageProps)
           </p>
         )}
       </div>
+
+      {/* Filter Bar */}
+      {type !== 'phim-moi' && (
+        <FilterBar countries={countries} categories={categories} baseUrl={`/danh-sach/${type}`} />
+      )}
 
       {/* Movie Grid */}
       <MovieGrid movies={movies} />
@@ -83,3 +94,5 @@ export default async function MovieListPage({ params, searchParams }: PageProps)
     </div>
   );
 }
+
+
