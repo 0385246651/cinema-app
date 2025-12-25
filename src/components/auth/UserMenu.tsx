@@ -73,6 +73,7 @@ export function UserMenu() {
               src={user.photoURL}
               alt={user.displayName || 'User'}
               fill
+              sizes="32px"
               className="object-cover"
             />
           ) : (
@@ -98,11 +99,11 @@ export function UserMenu() {
       {showDropdown && (
         <>
           {/* Backdrop */}
-          <div 
+          <div
             className="fixed inset-0 z-40"
             onClick={() => setShowDropdown(false)}
           />
-          
+
           {/* Menu */}
           <div className="absolute right-0 top-full mt-2 w-64 bg-[#0a0a1a]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl shadow-black/50 overflow-hidden z-50">
             {/* User Info */}
@@ -114,6 +115,7 @@ export function UserMenu() {
                       src={user.photoURL}
                       alt={user.displayName || 'User'}
                       fill
+                      sizes="48px"
                       className="object-cover"
                     />
                   ) : (
@@ -169,7 +171,7 @@ export function UserMenu() {
                 <History className="w-5 h-5" />
                 <span>Lịch sử xem</span>
               </Link>
-              
+
               <Link
                 href="/yeu-thich"
                 onClick={() => setShowDropdown(false)}
@@ -178,7 +180,7 @@ export function UserMenu() {
                 <Heart className="w-5 h-5" />
                 <span>Phim yêu thích</span>
               </Link>
-              
+
               <Link
                 href="/danh-gia"
                 onClick={() => setShowDropdown(false)}
@@ -187,7 +189,7 @@ export function UserMenu() {
                 <Star className="w-5 h-5" />
                 <span>Đánh giá của tôi</span>
               </Link>
-              
+
               <Link
                 href="/tai-khoan"
                 onClick={() => setShowDropdown(false)}

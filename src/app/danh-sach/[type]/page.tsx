@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { getMoviesByType } from '@/lib/api';
+import { getMoviesByType, getNewMovies } from '@/lib/api';
 import { MovieGrid, Pagination } from '@/components/movie';
 import { MOVIE_TYPES } from '@/lib/constants';
 
@@ -38,15 +38,25 @@ export default async function MovieListPage({ params, searchParams }: PageProps)
   const { type } = await params;
   const { page: pageParam } = await searchParams;
   const page = parseInt(pageParam || '1');
-  const apiType = typeMap[type] || type;
 
-  const data = await getMoviesByType(apiType, page, 24);
-  const movies = data?.data?.items || [];
-  const pagination = data?.data?.params?.pagination;
-  const title = titleMap[type] || data?.data?.titlePage || 'Danh sách phim';
+  let movies = [];
+  let pagination = null;
+  let title = titleMap[type] || 'Danh sách phim';
+
+  if (type === 'phim-moi') {
+    const data = await getNewMovies(page);
+    movies = data?.items || [];
+    pagination = data?.pagination;
+  } else {
+    const apiType = typeMap[type] || type;
+    const data = await getMoviesByType(apiType, page, 24);
+    movies = data?.data?.items || [];
+    pagination = data?.data?.params?.pagination;
+    title = titleMap[type] || data?.data?.titlePage || 'Danh sách phim';
+  }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 pt-16">
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl md:text-3xl font-bold mb-2">

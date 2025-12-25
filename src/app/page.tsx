@@ -1,18 +1,19 @@
 import { Suspense } from 'react';
 import { getNewMovies, getMoviesByType, getTheaterMovies } from '@/lib/api';
-import { HeroSlider, MovieSection, TheaterSection } from '@/components/movie';
+import { HeroSlider, MovieSection, TheaterSection, StatsSection } from '@/components/movie';
 import { HeroSkeleton, MovieGridSkeleton } from '@/components/ui';
-import { Film, Tv, Play, Sparkles } from 'lucide-react';
+import { Film, Tv, Play, Sparkles, MonitorPlay } from 'lucide-react';
 
 export const revalidate = 3600; // Revalidate every hour
 
 export default async function HomePage() {
   // Fetch data in parallel
-  const [newMoviesRes, seriesRes, singleRes, animeRes, theaterRes] = await Promise.all([
+  const [newMoviesRes, seriesRes, singleRes, animeRes, tvShowsRes, theaterRes] = await Promise.all([
     getNewMovies(1),
     getMoviesByType('phim-bo', 1, 12),
     getMoviesByType('phim-le', 1, 12),
     getMoviesByType('hoat-hinh', 1, 12),
+    getMoviesByType('tv-shows', 1, 12),
     getTheaterMovies(1, 12),
   ]);
 
@@ -20,17 +21,28 @@ export default async function HomePage() {
   const seriesMovies = seriesRes?.data?.items || [];
   const singleMovies = singleRes?.data?.items || [];
   const animeMovies = animeRes?.data?.items || [];
+  const tvShowsMovies = tvShowsRes?.data?.items || [];
   const theaterMovies = theaterRes?.data?.items || [];
 
   return (
     <div className="page-content">
-      {/* Animated Background */}
-      <div className="animated-bg" />
-      
       {/* Hero Slider */}
       <Suspense fallback={<HeroSkeleton />}>
         <HeroSlider movies={newMovies.slice(0, 6)} />
       </Suspense>
+
+      {/* Statistics */}
+      <StatsSection
+        totalMovies={newMoviesRes?.pagination?.totalItems || 0}
+        updatedToday={newMovies.filter(m => {
+          if (!m.modified?.time) return false;
+          const modDate = new Date(m.modified.time);
+          const today = new Date();
+          return modDate.getDate() === today.getDate() &&
+            modDate.getMonth() === today.getMonth() &&
+            modDate.getFullYear() === today.getFullYear();
+        }).length}
+      />
 
       {/* Content Sections */}
       <div className="container mx-auto px-4 py-12 space-y-16">
@@ -66,6 +78,16 @@ export default async function HomePage() {
             href="/danh-sach/phim-le"
             movies={singleMovies}
             icon={<Film className="w-5 h-5" />}
+          />
+        </Suspense>
+
+        {/* TV Shows */}
+        <Suspense fallback={<MovieGridSkeleton count={6} />}>
+          <MovieSection
+            title="TV Shows"
+            href="/danh-sach/tv-shows"
+            movies={tvShowsMovies}
+            icon={<MonitorPlay className="w-5 h-5" />}
           />
         </Suspense>
 

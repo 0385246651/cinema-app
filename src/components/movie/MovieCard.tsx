@@ -1,13 +1,12 @@
 'use client';
 
-import React, { useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Play, Star, Clock, Calendar } from 'lucide-react';
+import { Play, Star, Clock, Calendar, Globe } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getFullImageUrl } from '@/lib/api';
 import { QualityBadge, EpisodeBadge } from '@/components/ui';
-import { gsap } from 'gsap';
 import type { Movie } from '@/types';
 
 interface MovieCardProps {
@@ -17,123 +16,38 @@ interface MovieCardProps {
 }
 
 export function MovieCard({ movie, priority = false, index = 0 }: MovieCardProps) {
-  const cardRef = useRef<HTMLAnchorElement>(null);
-  const imageRef = useRef<HTMLDivElement>(null);
-  const overlayRef = useRef<HTMLDivElement>(null);
-  const playBtnRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const card = cardRef.current;
-    if (!card) return;
-
-    // Initial animation on mount
-    gsap.fromTo(card,
-      { opacity: 0, y: 40, scale: 0.95 },
-      { 
-        opacity: 1, 
-        y: 0, 
-        scale: 1,
-        duration: 0.6, 
-        delay: index * 0.08,
-        ease: 'power3.out'
-      }
-    );
-  }, [index]);
-
-  const handleMouseEnter = () => {
-    const card = cardRef.current;
-    const image = imageRef.current;
-    const overlay = overlayRef.current;
-    const playBtn = playBtnRef.current;
-    
-    if (card) {
-      gsap.to(card, {
-        y: -10,
-        scale: 1.02,
-        duration: 0.3,
-        ease: 'power2.out'
-      });
-    }
-    
-    if (image) {
-      gsap.to(image, {
-        scale: 1.15,
-        duration: 0.5,
-        ease: 'power2.out'
-      });
-    }
-    
-    if (overlay) {
-      gsap.to(overlay, {
-        opacity: 0.9,
-        duration: 0.3
-      });
-    }
-    
-    if (playBtn) {
-      gsap.to(playBtn, {
-        scale: 1,
-        opacity: 1,
-        duration: 0.3,
-        ease: 'back.out(1.7)'
-      });
-    }
-  };
-
-  const handleMouseLeave = () => {
-    const card = cardRef.current;
-    const image = imageRef.current;
-    const overlay = overlayRef.current;
-    const playBtn = playBtnRef.current;
-    
-    if (card) {
-      gsap.to(card, {
-        y: 0,
-        scale: 1,
-        duration: 0.3,
-        ease: 'power2.out'
-      });
-    }
-    
-    if (image) {
-      gsap.to(image, {
-        scale: 1,
-        duration: 0.5,
-        ease: 'power2.out'
-      });
-    }
-    
-    if (overlay) {
-      gsap.to(overlay, {
-        opacity: 0.6,
-        duration: 0.3
-      });
-    }
-    
-    if (playBtn) {
-      gsap.to(playBtn, {
-        scale: 0.7,
-        opacity: 0,
-        duration: 0.3,
-        ease: 'power2.in'
-      });
-    }
-  };
+  const [isLoaded, setIsLoaded] = useState(false);
 
   return (
     <Link
-      ref={cardRef}
       href={`/phim/${movie.slug}`}
-      className="group block opacity-0"
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      className={cn(
+        "group block relative backface-hidden will-change-transform transition-all duration-500 ease-out",
+        "hover:-translate-y-2 hover:scale-[1.02]",
+        // Simple entrance animation using Tailwind/CSS
+        "animate-in fade-in slide-in-from-bottom-4 duration-700"
+      )}
+      style={{
+        animationDelay: `${index * 50}ms`,
+        animationFillMode: 'both'
+      }}
     >
-      <div className="relative aspect-[2/3] rounded-2xl overflow-hidden bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-sm shadow-xl shadow-black/20">
+      <div style={{ height: 0, paddingTop: '150%', width: '100%' }} className="relative rounded-2xl overflow-hidden bg-white/5 backdrop-blur-sm shadow-xl shadow-black/20 ring-1 ring-white/10 group-hover:ring-violet-500/50 transition-all duration-300">
         {/* Animated Glow Border */}
-        <div className="absolute -inset-[1px] bg-gradient-to-r from-violet-600/0 via-violet-600/50 to-violet-600/0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-sm" />
-        
+        <div className="absolute -inset-[1px] bg-gradient-to-r from-violet-600/0 via-violet-600/50 to-violet-600/0 rounded-2xl opacity-0 group-hover:opacity-100 transition-all duration-700 blur-md group-hover:animate-pulse" />
+
+        {/* Skeleton Loading */}
+        {!isLoaded && (
+          <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-white/5 to-white/10 animate-pulse">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent skeleton-shimmer" />
+          </div>
+        )}
+
         {/* Poster Image */}
-        <div ref={imageRef} className="absolute inset-0">
+        <div className={cn(
+          "absolute inset-0 transition-all duration-700 group-hover:scale-110",
+          isLoaded ? "opacity-100" : "opacity-0"
+        )}>
           <Image
             src={getFullImageUrl(movie.poster_url || movie.thumb_url)}
             alt={movie.name}
@@ -141,39 +55,39 @@ export function MovieCard({ movie, priority = false, index = 0 }: MovieCardProps
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 16vw"
             className="object-cover"
             priority={priority}
+            onLoad={() => setIsLoaded(true)}
           />
         </div>
 
         {/* Gradient Overlay */}
-        <div 
-          ref={overlayRef}
-          className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-60 transition-opacity duration-300" 
-        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-300" />
 
         {/* Top Badges */}
-        <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-2">
+        <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-2 z-10">
           <QualityBadge quality={movie.quality} />
           <EpisodeBadge current={movie.episode_current} />
         </div>
 
         {/* Play Button Overlay */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div 
-            ref={playBtnRef}
-            className="w-16 h-16 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-2xl shadow-violet-600/50 scale-[0.7] opacity-0"
-          >
-            <div className="absolute inset-0 rounded-full bg-violet-500/50 animate-ping" />
-            <Play className="w-7 h-7 text-white fill-white ml-1 relative z-10" />
+        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-50 group-hover:scale-100">
+          <div className="w-14 h-14 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center shadow-lg border border-white/30 group-hover:bg-violet-600 group-hover:border-violet-500 transition-colors">
+            <Play className="w-6 h-6 text-white fill-white ml-1" />
           </div>
         </div>
 
         {/* Bottom Info */}
         <div className="absolute bottom-0 left-0 right-0 p-4">
           {/* Meta info */}
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex flex-wrap items-center gap-2 mb-2">
             {movie.lang && (
               <span className="text-[10px] font-medium px-2 py-1 bg-violet-500/30 backdrop-blur-sm rounded-full text-violet-200 border border-violet-400/30">
                 {movie.lang.includes('Vietsub') ? '🎬 Vietsub' : movie.lang.includes('Thuyết') ? '🎙️ TM' : movie.lang}
+              </span>
+            )}
+            {movie.country && movie.country.length > 0 && (
+              <span className="text-[10px] px-2 py-1 bg-blue-500/20 backdrop-blur-sm rounded-full text-blue-200 border border-blue-400/20 flex items-center gap-1">
+                <Globe className="w-3 h-3" />
+                {movie.country[0].name}
               </span>
             )}
             {movie.year && (
@@ -182,12 +96,18 @@ export function MovieCard({ movie, priority = false, index = 0 }: MovieCardProps
                 {movie.year}
               </span>
             )}
+            {movie.tmdb && movie.tmdb.vote_average > 0 && (
+              <span className="text-[10px] px-2 py-1 bg-yellow-500/20 backdrop-blur-sm rounded-full text-yellow-200 border border-yellow-400/20 flex items-center gap-1">
+                <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
+                {movie.tmdb.vote_average.toFixed(1)}
+              </span>
+            )}
           </div>
         </div>
 
         {/* Glass Border Effect */}
         <div className="absolute inset-0 rounded-2xl border border-white/[0.15] group-hover:border-violet-400/50 transition-colors duration-500 pointer-events-none" />
-        
+
         {/* Corner Shine Effect */}
         <div className="absolute top-0 left-0 w-20 h-20 bg-gradient-to-br from-white/20 to-transparent rounded-tl-2xl opacity-50" />
       </div>

@@ -87,6 +87,7 @@ export function MovieActions({ movie }: MovieActionsProps) {
       await rateMovie(user.uid, {
         movieSlug: movie.slug,
         movieName: movie.name,
+        moviePoster: movie.poster_url || movie.thumb_url || '',
         rating,
       });
       setUserRating(rating);
@@ -121,16 +122,16 @@ export function MovieActions({ movie }: MovieActionsProps) {
           onClick={handleFavoriteClick}
           disabled={loading}
           className={cn(
-            'flex items-center gap-2 px-5 py-3 rounded-xl font-medium transition-all',
+            'flex items-center gap-1.5 md:gap-2 px-3 md:px-5 py-2 md:py-3 rounded-xl text-sm md:text-base font-medium transition-all',
             isFav
               ? 'bg-pink-500/20 text-pink-400 border border-pink-500/30'
               : 'bg-white/5 text-white/70 border border-white/10 hover:bg-white/10 hover:text-white'
           )}
         >
           {loading ? (
-            <Loader2 className="w-5 h-5 animate-spin" />
+            <Loader2 className="w-4 h-4 md:w-5 md:h-5 animate-spin" />
           ) : (
-            <Heart className={cn('w-5 h-5', isFav && 'fill-pink-400')} />
+            <Heart className={cn('w-4 h-4 md:w-5 md:h-5', isFav && 'fill-pink-400')} />
           )}
           <span>{isFav ? 'Đã thích' : 'Yêu thích'}</span>
         </button>
@@ -140,13 +141,13 @@ export function MovieActions({ movie }: MovieActionsProps) {
           <button
             onClick={() => setShowRating(!showRating)}
             className={cn(
-              'flex items-center gap-2 px-5 py-3 rounded-xl font-medium transition-all',
+              'flex items-center gap-1.5 md:gap-2 px-3 md:px-5 py-2 md:py-3 rounded-xl text-sm md:text-base font-medium transition-all',
               userRating > 0
                 ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
                 : 'bg-white/5 text-white/70 border border-white/10 hover:bg-white/10 hover:text-white'
             )}
           >
-            <Star className={cn('w-5 h-5', userRating > 0 && 'fill-yellow-400')} />
+            <Star className={cn('w-4 h-4 md:w-5 md:h-5', userRating > 0 && 'fill-yellow-400')} />
             <span>{userRating > 0 ? `${userRating}/5` : 'Đánh giá'}</span>
           </button>
 
@@ -175,10 +176,9 @@ export function MovieActions({ movie }: MovieActionsProps) {
         {/* Share Button */}
         <button
           onClick={handleShare}
-          className="flex items-center gap-2 px-5 py-3 rounded-xl font-medium bg-white/5 text-white/70 border border-white/10 hover:bg-white/10 hover:text-white transition-all"
+          className="flex items-center gap-1.5 md:gap-2 px-3 md:px-5 py-2 md:py-3 rounded-xl text-sm md:text-base font-medium bg-white/5 text-white/70 border border-white/10 hover:bg-white/10 hover:text-white transition-all"
         >
-          <Share2 className="w-5 h-5" />
-          <span className="hidden sm:inline">Chia sẻ</span>
+          <Share2 className="w-4 h-4 md:w-5 md:h-5" />
         </button>
       </div>
 

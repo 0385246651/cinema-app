@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import { searchMovies } from '@/lib/api';
+import { Movie } from '@/types';
 import { MovieGrid, Pagination } from '@/components/movie';
 import { SearchInput } from '@/components/ui';
 import { Search as SearchIcon } from 'lucide-react';
@@ -10,10 +11,10 @@ interface PageProps {
 
 export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
   const { q } = await searchParams;
-  
+
   return {
     title: q ? `Tìm kiếm: ${q} | PhimHay` : 'Tìm kiếm phim | PhimHay',
-    description: q 
+    description: q
       ? `Kết quả tìm kiếm cho "${q}" - Xem phim chất lượng cao`
       : 'Tìm kiếm phim hay, phim mới nhất',
   };
@@ -23,23 +24,29 @@ export default async function SearchPage({ searchParams }: PageProps) {
   const { q: query, page: pageParam } = await searchParams;
   const page = parseInt(pageParam || '1');
 
-  let movies: any[] = [];
-  let pagination: any = null;
+  let movies: Movie[] = [];
+  interface PaginationParams {
+    totalItems: number;
+    totalItemsPerPage: number;
+    currentPage: number;
+    totalPages: number;
+  }
+  let pagination: PaginationParams | null = null;
 
   if (query) {
     const data = await searchMovies(query, page, 24);
-    movies = data?.data?.items || [];
-    pagination = data?.data?.params?.pagination;
+    movies = (data?.data?.items as Movie[]) || [];
+    pagination = data?.data?.params?.pagination || null;
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 pt-16">
       {/* Search Header */}
       <div className="max-w-2xl mx-auto mb-12">
         <h1 className="text-2xl md:text-3xl font-bold text-center mb-6">
           <span className="gradient-text">Tìm kiếm phim</span>
         </h1>
-        
+
         <form action="/tim-kiem" method="get" className="relative">
           <SearchInput
             name="q"
@@ -61,7 +68,7 @@ export default async function SearchPage({ searchParams }: PageProps) {
         <>
           <div className="mb-6">
             <h2 className="text-xl font-semibold mb-2">
-              Kết quả tìm kiếm cho: <span className="text-violet-400">"{query}"</span>
+              Kết quả tìm kiếm cho: <span className="text-violet-400">&quot;{query}&quot;</span>
             </h2>
             {pagination && (
               <p className="text-white/50 text-sm">

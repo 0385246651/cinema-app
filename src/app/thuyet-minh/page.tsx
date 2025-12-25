@@ -1,7 +1,8 @@
 import { Metadata } from 'next';
-import { getDubbedMovies, getFullImageUrl } from '@/lib/api';
+import { getDubbedMovies } from '@/lib/api';
 import { MovieGrid, Pagination } from '@/components/movie';
 import { Volume2 } from 'lucide-react';
+import { Movie } from '@/types/movie';
 
 export const metadata: Metadata = {
   title: 'Phim Thuyết Minh | PhimHay',
@@ -15,7 +16,7 @@ interface PageProps {
 export default async function ThuyetMinhPage({ searchParams }: PageProps) {
   const { page: pageParam } = await searchParams;
   const page = parseInt(pageParam || '1', 10);
-  
+
   let data;
   try {
     data = await getDubbedMovies(page, 24);
@@ -28,17 +29,17 @@ export default async function ThuyetMinhPage({ searchParams }: PageProps) {
   const pagination = data?.data?.params?.pagination || { totalPages: 1, currentPage: page };
 
   // Filter movies that are actually dubbed (contain thuyết minh in lang)
-  const dubbedMovies = movies.filter((movie: any) => {
+  const dubbedMovies = movies.filter((movie: Movie) => {
     const lang = (movie.lang || '').toLowerCase();
-    return lang.includes('thuyết minh') || 
-           lang.includes('thuyet minh') || 
-           lang.includes('lồng tiếng') ||
-           lang.includes('long tieng') ||
-           lang.includes('vietsub + thuyết minh');
+    return lang.includes('thuyết minh') ||
+      lang.includes('thuyet minh') ||
+      lang.includes('lồng tiếng') ||
+      lang.includes('long tieng') ||
+      lang.includes('vietsub + thuyết minh');
   });
 
   return (
-    <div className="min-h-screen py-8">
+    <div className="min-h-screen py-8 pt-16">
       <div className="container mx-auto px-4">
         {/* Header */}
         <div className="mb-8">
@@ -55,11 +56,11 @@ export default async function ThuyetMinhPage({ searchParams }: PageProps) {
               </p>
             </div>
           </div>
-          
+
           {/* Info banner */}
           <div className="glass-card p-4 rounded-xl border-l-4 border-orange-500">
             <p className="text-sm text-white/70">
-              🔊 Tất cả phim trong danh mục này đều có <span className="text-orange-400 font-semibold">THUYẾT MINH tiếng Việt</span>. 
+              🔊 Tất cả phim trong danh mục này đều có <span className="text-orange-400 font-semibold">THUYẾT MINH tiếng Việt</span>.
               Phù hợp cho người lớn tuổi và trẻ em chưa biết đọc phụ đề.
             </p>
           </div>
@@ -69,7 +70,7 @@ export default async function ThuyetMinhPage({ searchParams }: PageProps) {
         {dubbedMovies.length > 0 ? (
           <>
             <MovieGrid movies={dubbedMovies} />
-            
+
             {pagination.totalPages > 1 && (
               <div className="mt-8">
                 <Pagination
@@ -87,7 +88,7 @@ export default async function ThuyetMinhPage({ searchParams }: PageProps) {
               Hiển thị tất cả phim có liên quan đến thuyết minh:
             </p>
             <MovieGrid movies={movies} />
-            
+
             {pagination.totalPages > 1 && (
               <div className="mt-8">
                 <Pagination

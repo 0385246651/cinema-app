@@ -11,7 +11,6 @@ import {
   Minimize,
   SkipBack,
   SkipForward,
-  Settings,
   Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -30,6 +29,7 @@ interface VideoPlayerProps {
   serverIndex?: number;
   onPrev?: () => void;
   onNext?: () => void;
+  onEnded?: () => void;
   hasPrev?: boolean;
   hasNext?: boolean;
 }
@@ -46,6 +46,7 @@ export function VideoPlayer({
   serverIndex = 0,
   onPrev,
   onNext,
+  onEnded,
   hasPrev,
   hasNext,
 }: VideoPlayerProps) {
@@ -75,13 +76,13 @@ export function VideoPlayer({
   useEffect(() => {
     const loadSavedProgress = async () => {
       if (!user || !movieSlug) return;
-      
+
       const savedProgress = await getWatchProgress(user.uid, movieSlug, episodeSlug);
       if (savedProgress && savedProgress.currentTime > 10 && savedProgress.progress < 95) {
         setResumeTime(savedProgress.currentTime);
       }
     };
-    
+
     loadSavedProgress();
     hasCountedViewRef.current = false;
   }, [user, movieSlug, episodeSlug]);
@@ -150,6 +151,8 @@ export function VideoPlayer({
     const video = videoRef.current;
     if (!video || !src) return;
 
+    // Only set loading if not already loading to avoid cascading updates
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsLoading(true);
     setError(null);
 
@@ -231,6 +234,11 @@ export function VideoPlayer({
     const handleCanPlay = () => setIsLoading(false);
     const handleLoadedData = () => setIsLoading(false);
     const handlePlaying = () => setIsLoading(false);
+    const handleEnded = () => {
+      if (onEnded) {
+        onEnded();
+      }
+    };
 
     video.addEventListener('timeupdate', handleTimeUpdate);
     video.addEventListener('durationchange', handleDurationChange);
@@ -240,6 +248,7 @@ export function VideoPlayer({
     video.addEventListener('canplay', handleCanPlay);
     video.addEventListener('loadeddata', handleLoadedData);
     video.addEventListener('playing', handlePlaying);
+    video.addEventListener('ended', handleEnded);
 
     return () => {
       video.removeEventListener('timeupdate', handleTimeUpdate);
@@ -250,8 +259,9 @@ export function VideoPlayer({
       video.removeEventListener('canplay', handleCanPlay);
       video.removeEventListener('loadeddata', handleLoadedData);
       video.removeEventListener('playing', handlePlaying);
+      video.removeEventListener('ended', handleEnded);
     };
-  }, []);
+  }, [onEnded]);
 
   // Auto-hide controls
   const handleMouseMove = () => {
@@ -328,7 +338,7 @@ export function VideoPlayer({
   // Format time
   const formatTime = (time: number) => {
     if (!time || isNaN(time)) return '0:00';
-    
+
     const hours = Math.floor(time / 3600);
     const minutes = Math.floor((time % 3600) / 60);
     const seconds = Math.floor(time % 60);
@@ -374,11 +384,11 @@ export function VideoPlayer({
       {/* Loading Overlay */}
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-black/80 via-black/60 to-black/80 backdrop-blur-sm">
-          <div className="flex items-center gap-3 px-4 py-3 rounded-full bg-white/5 border border-white/10 shadow-xl">
-            <Loader2 className="w-10 h-10 animate-spin text-violet-400" />
-            <div className="leading-tight">
-              <p className="text-white font-medium text-sm">Đang tải video...</p>
-              <p className="text-white/60 text-xs">Nếu lâu bất thường, thử đổi server hoặc tải lại trang.</p>
+          <div className="flex flex-col md:flex-row items-center gap-2 md:gap-3 px-4 py-3 rounded-full bg-white/5 border border-white/10 shadow-xl max-w-[90%]">
+            <Loader2 className="w-6 h-6 md:w-10 md:h-10 animate-spin text-violet-400" />
+            <div className="leading-tight text-center md:text-left">
+              <p className="text-white font-medium text-xs md:text-sm">Đang tải video...</p>
+              <p className="text-white/60 text-[10px] md:text-xs hidden sm:block">Nếu lâu bất thường, thử đổi server hoặc tải lại trang.</p>
             </div>
           </div>
         </div>
@@ -424,8 +434,8 @@ export function VideoPlayer({
           className="absolute inset-0 flex items-center justify-center cursor-pointer"
           onClick={togglePlay}
         >
-          <div className="w-20 h-20 rounded-full bg-violet-600/80 backdrop-blur-sm flex items-center justify-center hover:bg-violet-600 transition-colors">
-            <Play className="w-8 h-8 text-white fill-white ml-1" />
+          <div className="w-14 h-14 md:w-20 md:h-20 rounded-full bg-violet-600/80 backdrop-blur-sm flex items-center justify-center hover:bg-violet-600 transition-colors shadow-lg shadow-violet-500/30">
+            <Play className="w-6 h-6 md:w-8 md:h-8 text-white fill-white ml-0.5 md:ml-1" />
           </div>
         </div>
       )}
@@ -433,12 +443,12 @@ export function VideoPlayer({
       {/* Controls */}
       <div
         className={cn(
-          'absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent pt-20 pb-4 px-4 transition-opacity duration-300',
+          'absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent pt-12 md:pt-20 pb-2 md:pb-4 px-2 md:px-4 transition-opacity duration-300',
           showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
         )}
       >
         {/* Progress Bar */}
-        <div className="mb-4">
+        <div className="mb-2 md:mb-4">
           <input
             type="range"
             min="0"
@@ -454,31 +464,31 @@ export function VideoPlayer({
 
         {/* Control Buttons */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 md:gap-4">
+          <div className="flex items-center gap-1 md:gap-4">
             {/* Play/Pause */}
             <button
               onClick={togglePlay}
-              className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+              className="p-1.5 md:p-2 rounded-lg hover:bg-white/10 transition-colors"
             >
               {isPlaying ? (
-                <Pause className="w-5 h-5 md:w-6 md:h-6" />
+                <Pause className="w-4 h-4 md:w-6 md:h-6" />
               ) : (
-                <Play className="w-5 h-5 md:w-6 md:h-6 fill-white" />
+                <Play className="w-4 h-4 md:w-6 md:h-6 fill-white" />
               )}
             </button>
 
             {/* Skip Buttons */}
             <button
               onClick={() => skip(-10)}
-              className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+              className="p-1.5 md:p-2 rounded-lg hover:bg-white/10 transition-colors"
             >
-              <SkipBack className="w-4 h-4 md:w-5 md:h-5" />
+              <SkipBack className="w-3.5 h-3.5 md:w-5 md:h-5" />
             </button>
             <button
               onClick={() => skip(10)}
-              className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+              className="p-1.5 md:p-2 rounded-lg hover:bg-white/10 transition-colors"
             >
-              <SkipForward className="w-4 h-4 md:w-5 md:h-5" />
+              <SkipForward className="w-3.5 h-3.5 md:w-5 md:h-5" />
             </button>
 
             {/* Volume */}
@@ -505,7 +515,7 @@ export function VideoPlayer({
             </div>
 
             {/* Time */}
-            <span className="text-xs md:text-sm text-white/70">
+            <span className="text-[10px] md:text-sm text-white/70 ml-1">
               {formatTime(currentTime)} / {formatTime(duration)}
             </span>
           </div>

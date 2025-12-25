@@ -36,8 +36,8 @@ export interface MovieDetail {
     slug: string;
     origin_name: string;
     content: string;
-    type: 'series' | 'single' | 'hoathinh' | 'tvshows';
-    status: 'ongoing' | 'completed';
+    type: "series" | "single" | "hoathinh" | "tvshows";
+    status: "ongoing" | "completed";
     poster_url: string;
     thumb_url: string;
     trailer_url: string;
@@ -56,6 +56,15 @@ export interface MovieDetail {
     notify: string;
     showtimes: string;
     view: number;
+    tmdb?: {
+      type: string;
+      id: string;
+      season: number;
+      vote_average: number;
+    };
+    imdb?: {
+      id: string | null;
+    };
   };
   episodes: Episode[];
 }
@@ -95,7 +104,7 @@ export interface MovieListResponse {
 export interface MovieDetailResponse {
   status: boolean;
   msg: string;
-  movie: MovieDetail['movie'];
+  movie: MovieDetail["movie"];
   episodes: Episode[];
 }
 

@@ -1,6 +1,21 @@
-import { ref, set, get, remove, query, orderByChild, limitToLast, onValue, off } from 'firebase/database';
-import { database } from '@/lib/firebase';
-import { WatchHistory, FavoriteMovie, MovieRating, DB_PATHS } from '@/types/firebase';
+import {
+  ref,
+  set,
+  get,
+  remove,
+  query,
+  orderByChild,
+  limitToLast,
+  onValue,
+  off,
+} from "firebase/database";
+import { database } from "@/lib/firebase";
+import {
+  WatchHistory,
+  FavoriteMovie,
+  MovieRating,
+  DB_PATHS,
+} from "@/types/firebase";
 
 // ============================================
 // WATCH HISTORY SERVICES
@@ -12,13 +27,15 @@ import { WatchHistory, FavoriteMovie, MovieRating, DB_PATHS } from '@/types/fire
  */
 export async function saveWatchProgress(
   userId: string,
-  data: Omit<WatchHistory, 'watchedAt' | 'updatedAt'>
+  data: Omit<WatchHistory, "watchedAt" | "updatedAt">
 ): Promise<void> {
   const historyRef = ref(
     database,
-    `${DB_PATHS.watchHistory}/${userId}/${data.movieSlug}${data.episodeSlug ? '_' + data.episodeSlug : ''}`
+    `${DB_PATHS.watchHistory}/${userId}/${data.movieSlug}${
+      data.episodeSlug ? "_" + data.episodeSlug : ""
+    }`
   );
-  
+
   const now = Date.now();
   await set(historyRef, {
     ...data,
@@ -38,7 +55,7 @@ export async function getWatchProgress(
 ): Promise<WatchHistory | null> {
   const key = episodeSlug ? `${movieSlug}_${episodeSlug}` : movieSlug;
   const historyRef = ref(database, `${DB_PATHS.watchHistory}/${userId}/${key}`);
-  
+
   const snapshot = await get(historyRef);
   return snapshot.exists() ? snapshot.val() : null;
 }
@@ -51,17 +68,21 @@ export async function getWatchHistory(
   limit: number = 20
 ): Promise<WatchHistory[]> {
   const historyRef = ref(database, `${DB_PATHS.watchHistory}/${userId}`);
-  const historyQuery = query(historyRef, orderByChild('watchedAt'), limitToLast(limit));
-  
+  const historyQuery = query(
+    historyRef,
+    orderByChild("watchedAt"),
+    limitToLast(limit)
+  );
+
   const snapshot = await get(historyQuery);
-  
+
   if (!snapshot.exists()) return [];
-  
+
   const history: WatchHistory[] = [];
   snapshot.forEach((child) => {
     history.push(child.val());
   });
-  
+
   // Sắp xếp mới nhất lên trước
   return history.reverse();
 }
@@ -96,9 +117,12 @@ export async function clearWatchHistory(userId: string): Promise<void> {
  */
 export async function addToFavorites(
   userId: string,
-  movie: Omit<FavoriteMovie, 'addedAt'>
+  movie: Omit<FavoriteMovie, "addedAt">
 ): Promise<void> {
-  const favRef = ref(database, `${DB_PATHS.favorites}/${userId}/${movie.movieSlug}`);
+  const favRef = ref(
+    database,
+    `${DB_PATHS.favorites}/${userId}/${movie.movieSlug}`
+  );
   await set(favRef, {
     ...movie,
     addedAt: Date.now(),
@@ -136,17 +160,17 @@ export async function getFavorites(
   limit: number = 50
 ): Promise<FavoriteMovie[]> {
   const favRef = ref(database, `${DB_PATHS.favorites}/${userId}`);
-  const favQuery = query(favRef, orderByChild('addedAt'), limitToLast(limit));
-  
+  const favQuery = query(favRef, orderByChild("addedAt"), limitToLast(limit));
+
   const snapshot = await get(favQuery);
-  
+
   if (!snapshot.exists()) return [];
-  
+
   const favorites: FavoriteMovie[] = [];
   snapshot.forEach((child) => {
     favorites.push(child.val());
   });
-  
+
   return favorites.reverse();
 }
 
@@ -159,19 +183,22 @@ export async function getFavorites(
  */
 export async function rateMovie(
   userId: string,
-  rating: Omit<MovieRating, 'createdAt' | 'updatedAt'>
+  rating: Omit<MovieRating, "createdAt" | "updatedAt">
 ): Promise<void> {
-  const ratingRef = ref(database, `${DB_PATHS.ratings}/${userId}/${rating.movieSlug}`);
-  
+  const ratingRef = ref(
+    database,
+    `${DB_PATHS.ratings}/${userId}/${rating.movieSlug}`
+  );
+
   // Check if exists
   const existing = await get(ratingRef);
-  
+
   await set(ratingRef, {
     ...rating,
     createdAt: existing.exists() ? existing.val().createdAt : Date.now(),
     updatedAt: Date.now(),
   });
-  
+
   // Update movie stats
   await updateMovieStats(rating.movieSlug, rating.rating);
 }
@@ -191,19 +218,17 @@ export async function getUserRating(
 /**
  * Lấy tất cả đánh giá của user
  */
-export async function getUserRatings(
-  userId: string
-): Promise<MovieRating[]> {
+export async function getUserRatings(userId: string): Promise<MovieRating[]> {
   const ratingsRef = ref(database, `${DB_PATHS.ratings}/${userId}`);
   const snapshot = await get(ratingsRef);
-  
+
   if (!snapshot.exists()) return [];
-  
+
   const ratings: MovieRating[] = [];
   snapshot.forEach((child) => {
     ratings.push(child.val());
   });
-  
+
   return ratings.sort((a, b) => b.updatedAt - a.updatedAt);
 }
 
@@ -231,16 +256,22 @@ interface MovieStats {
 /**
  * Cập nhật thống kê phim (được gọi khi có đánh giá mới)
  */
-async function updateMovieStats(movieSlug: string, newRating: number): Promise<void> {
+async function updateMovieStats(
+  movieSlug: string,
+  newRating: number
+): Promise<void> {
   const statsRef = ref(database, `${DB_PATHS.movieStats}/${movieSlug}`);
   const snapshot = await get(statsRef);
-  
-  const current = snapshot.exists() ? snapshot.val() : { totalRatings: 0, sumRatings: 0, viewCount: 0 };
-  
+
+  const current = snapshot.exists()
+    ? snapshot.val()
+    : { totalRatings: 0, sumRatings: 0, viewCount: 0 };
+
   await set(statsRef, {
     totalRatings: current.totalRatings + 1,
     sumRatings: (current.sumRatings || 0) + newRating,
-    averageRating: ((current.sumRatings || 0) + newRating) / (current.totalRatings + 1),
+    averageRating:
+      ((current.sumRatings || 0) + newRating) / (current.totalRatings + 1),
     viewCount: current.viewCount,
   });
 }
@@ -251,9 +282,11 @@ async function updateMovieStats(movieSlug: string, newRating: number): Promise<v
 export async function incrementViewCount(movieSlug: string): Promise<void> {
   const statsRef = ref(database, `${DB_PATHS.movieStats}/${movieSlug}`);
   const snapshot = await get(statsRef);
-  
-  const current = snapshot.exists() ? snapshot.val() : { totalRatings: 0, averageRating: 0, viewCount: 0 };
-  
+
+  const current = snapshot.exists()
+    ? snapshot.val()
+    : { totalRatings: 0, averageRating: 0, viewCount: 0 };
+
   await set(statsRef, {
     ...current,
     viewCount: (current.viewCount || 0) + 1,
@@ -263,7 +296,9 @@ export async function incrementViewCount(movieSlug: string): Promise<void> {
 /**
  * Lấy thống kê phim
  */
-export async function getMovieStats(movieSlug: string): Promise<MovieStats | null> {
+export async function getMovieStats(
+  movieSlug: string
+): Promise<MovieStats | null> {
   const statsRef = ref(database, `${DB_PATHS.movieStats}/${movieSlug}`);
   const snapshot = await get(statsRef);
   return snapshot.exists() ? snapshot.val() : null;
@@ -281,21 +316,21 @@ export function subscribeToWatchHistory(
   callback: (history: WatchHistory[]) => void
 ): () => void {
   const historyRef = ref(database, `${DB_PATHS.watchHistory}/${userId}`);
-  
+
   const listener = onValue(historyRef, (snapshot) => {
     if (!snapshot.exists()) {
       callback([]);
       return;
     }
-    
+
     const history: WatchHistory[] = [];
     snapshot.forEach((child) => {
       history.push(child.val());
     });
-    
+
     callback(history.sort((a, b) => b.watchedAt - a.watchedAt));
   });
-  
+
   // Return unsubscribe function
   return () => off(historyRef);
 }
@@ -308,20 +343,46 @@ export function subscribeToFavorites(
   callback: (favorites: FavoriteMovie[]) => void
 ): () => void {
   const favRef = ref(database, `${DB_PATHS.favorites}/${userId}`);
-  
+
   const listener = onValue(favRef, (snapshot) => {
     if (!snapshot.exists()) {
       callback([]);
       return;
     }
-    
+
     const favorites: FavoriteMovie[] = [];
     snapshot.forEach((child) => {
       favorites.push(child.val());
     });
-    
+
     callback(favorites.sort((a, b) => b.addedAt - a.addedAt));
   });
-  
+
   return () => off(favRef);
+}
+
+/**
+ * Subscribe to ratings changes
+ */
+export function subscribeToRatings(
+  userId: string,
+  callback: (ratings: MovieRating[]) => void
+): () => void {
+  const ratingsRef = ref(database, `${DB_PATHS.ratings}/${userId}`);
+
+  const listener = onValue(ratingsRef, (snapshot) => {
+    if (!snapshot.exists()) {
+      callback([]);
+      return;
+    }
+
+    const ratings: MovieRating[] = [];
+    snapshot.forEach((child) => {
+      ratings.push(child.val());
+    });
+
+    callback(ratings.sort((a, b) => b.updatedAt - a.updatedAt));
+  });
+
+  return () => off(ratingsRef);
 }

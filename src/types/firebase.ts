@@ -15,20 +15,21 @@ export interface WatchHistory {
   moviePoster: string;
   episodeSlug?: string;
   episodeName?: string;
-  currentTime: number;      // Thời gian đã xem (giây)
-  duration: number;         // Tổng thời lượng (giây)
-  progress: number;         // Tiến độ xem (%)
-  watchedAt: number;        // Timestamp lần xem cuối
-  updatedAt: number;        // Timestamp cập nhật
-  completed: boolean;       // Đã xem xong chưa
-  serverIndex?: number;     // Server đang xem
+  currentTime: number; // Thời gian đã xem (giây)
+  duration: number; // Tổng thời lượng (giây)
+  progress: number; // Tiến độ xem (%)
+  watchedAt: number; // Timestamp lần xem cuối
+  updatedAt: number; // Timestamp cập nhật
+  completed: boolean; // Đã xem xong chưa
+  serverIndex?: number; // Server đang xem
 }
 
 export interface MovieRating {
   movieSlug: string;
   movieName: string;
-  rating: number;           // 1-5 stars
-  review?: string;          // Bình luận
+  moviePoster?: string;
+  rating: number; // 1-10 stars (updated to match 10 scale or 5 scale depending on usage)
+  content?: string; // Bình luận
   createdAt: number;
   updatedAt: number;
 }
@@ -38,7 +39,7 @@ export interface FavoriteMovie {
   movieName: string;
   moviePoster: string;
   movieYear?: number;
-  movieType?: 'series' | 'single' | 'hoathinh' | 'tvshows';
+  movieType?: "series" | "single" | "hoathinh" | "tvshows";
   addedAt: number;
 }
 
@@ -70,11 +71,11 @@ export interface MovieComment {
 
 // Database paths
 export const DB_PATHS = {
-  users: 'users',
-  watchHistory: 'watchHistory',
-  ratings: 'ratings',
-  favorites: 'favorites',
-  comments: 'comments',
-  chat: 'chat',
-  movieStats: 'movieStats',
+  users: "users",
+  watchHistory: "watchHistory",
+  ratings: "ratings",
+  favorites: "favorites",
+  comments: "comments",
+  chat: "chat",
+  movieStats: "movieStats",
 } as const;

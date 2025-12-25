@@ -1,19 +1,17 @@
 import {
   ref,
-  set,
-  get,
   push,
-  update,
-  remove,
-  query,
-  orderByChild,
-  equalTo,
   onValue,
   off,
+  set,
+  get,
+  query,
+  orderByChild,
   limitToLast,
-  serverTimestamp,
-} from 'firebase/database';
-import { database } from '@/lib/firebase';
+  update,
+  remove,
+} from "firebase/database";
+import { database } from "@/lib/firebase";
 
 // ============================================
 // FRIEND SYSTEM
@@ -23,29 +21,36 @@ import { database } from '@/lib/firebase';
  * Send friend request
  */
 export async function sendFriendRequest(
-  fromUser: { uid: string; displayName: string | null; photoURL: string | null },
+  fromUser: {
+    uid: string;
+    displayName: string | null;
+    photoURL: string | null;
+  },
   toUserId: string
 ): Promise<void> {
   // Check if already friends or pending
   const existingRef = ref(database, `friends/${fromUser.uid}/${toUserId}`);
   const existing = await get(existingRef);
   if (existing.exists()) {
-    throw new Error('Đã là bạn bè');
+    throw new Error("Đã là bạn bè");
   }
 
-  const pendingRef = ref(database, `friendRequests/${toUserId}/${fromUser.uid}`);
+  const pendingRef = ref(
+    database,
+    `friendRequests/${toUserId}/${fromUser.uid}`
+  );
   const pending = await get(pendingRef);
   if (pending.exists()) {
-    throw new Error('Đã gửi lời mời kết bạn');
+    throw new Error("Đã gửi lời mời kết bạn");
   }
 
   // Create friend request
   await set(pendingRef, {
     fromUserId: fromUser.uid,
-    fromUserName: fromUser.displayName || 'Người dùng',
+    fromUserName: fromUser.displayName || "Người dùng",
     fromUserPhoto: fromUser.photoURL || null,
     toUserId,
-    status: 'pending',
+    status: "pending",
     createdAt: Date.now(),
   });
 }
@@ -54,12 +59,17 @@ export async function sendFriendRequest(
  * Accept friend request
  */
 export async function acceptFriendRequest(
-  currentUser: { uid: string; displayName: string | null; photoURL: string | null },
+  currentUser: {
+    uid: string;
+    displayName: string | null;
+    photoURL: string | null;
+  },
   request: { fromUserId: string; fromUserName: string; fromUserPhoto?: string }
 ): Promise<void> {
   // Add to both users' friends list
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updates: Record<string, any> = {};
-  
+
   // Add friend for current user
   updates[`friends/${currentUser.uid}/${request.fromUserId}`] = {
     odUserId: request.fromUserId,
@@ -67,18 +77,18 @@ export async function acceptFriendRequest(
     userPhoto: request.fromUserPhoto || null,
     addedAt: Date.now(),
   };
-  
+
   // Add friend for requester
   updates[`friends/${request.fromUserId}/${currentUser.uid}`] = {
     odUserId: currentUser.uid,
-    userName: currentUser.displayName || 'Người dùng',
+    userName: currentUser.displayName || "Người dùng",
     userPhoto: currentUser.photoURL || null,
     addedAt: Date.now(),
   };
-  
+
   // Remove friend request
   updates[`friendRequests/${currentUser.uid}/${request.fromUserId}`] = null;
-  
+
   await update(ref(database), updates);
 }
 
@@ -99,6 +109,7 @@ export async function removeFriend(
   currentUserId: string,
   friendId: string
 ): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updates: Record<string, any> = {};
   updates[`friends/${currentUserId}/${friendId}`] = null;
   updates[`friends/${friendId}/${currentUserId}`] = null;
@@ -110,26 +121,26 @@ export async function removeFriend(
  */
 export function subscribeFriendRequests(
   userId: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   callback: (requests: any[]) => void
 ): () => void {
   const requestsRef = ref(database, `friendRequests/${userId}`);
-  
-  const unsubscribe = onValue(requestsRef, (snapshot) => {
+
+  return onValue(requestsRef, (snapshot) => {
     if (!snapshot.exists()) {
       callback([]);
       return;
     }
-    
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const requests: any[] = [];
     snapshot.forEach((child) => {
-      if (child.val().status === 'pending') {
+      if (child.val().status === "pending") {
         requests.push({ id: child.key, ...child.val() });
       }
     });
     callback(requests);
   });
-
-  return () => off(requestsRef);
 }
 
 /**
@@ -137,27 +148,27 @@ export function subscribeFriendRequests(
  */
 export function subscribeFriends(
   userId: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   callback: (friends: any[]) => void
 ): () => void {
   const friendsRef = ref(database, `friends/${userId}`);
-  
-  const unsubscribe = onValue(friendsRef, (snapshot) => {
+
+  return onValue(friendsRef, (snapshot) => {
     if (!snapshot.exists()) {
       callback([]);
       return;
     }
-    
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const friends: any[] = [];
     snapshot.forEach((child) => {
       friends.push({ odUserId: child.key, ...child.val() });
     });
-    
+
     // Sort by last message time
     friends.sort((a, b) => (b.lastMessageAt || 0) - (a.lastMessageAt || 0));
     callback(friends);
   });
-
-  return () => off(friendsRef);
 }
 
 /**
@@ -180,7 +191,7 @@ export async function areFriends(
  * Get chat ID for two users (sorted to ensure consistency)
  */
 export function getChatId(userId1: string, userId2: string): string {
-  return [userId1, userId2].sort().join('_');
+  return [userId1, userId2].sort().join("_");
 }
 
 /**
@@ -194,11 +205,11 @@ export async function sendPrivateMessage(
   const chatId = getChatId(sender.uid, receiverId);
   const messagesRef = ref(database, `privateMessages/${chatId}`);
   const newMessageRef = push(messagesRef);
-  
+
   await set(newMessageRef, {
     chatId,
     senderId: sender.uid,
-    senderName: sender.displayName || 'Người dùng',
+    senderName: sender.displayName || "Người dùng",
     senderPhoto: sender.photoURL || null,
     receiverId,
     message,
@@ -207,18 +218,23 @@ export async function sendPrivateMessage(
   });
 
   // Update last message in friends list for both users
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updates: Record<string, any> = {};
   updates[`friends/${sender.uid}/${receiverId}/lastMessage`] = message;
   updates[`friends/${sender.uid}/${receiverId}/lastMessageAt`] = Date.now();
   updates[`friends/${receiverId}/${sender.uid}/lastMessage`] = message;
   updates[`friends/${receiverId}/${sender.uid}/lastMessageAt`] = Date.now();
-  
+
   // Increment unread count for receiver
-  const friendRef = ref(database, `friends/${receiverId}/${sender.uid}/unreadCount`);
+  const friendRef = ref(
+    database,
+    `friends/${receiverId}/${sender.uid}/unreadCount`
+  );
   const unreadSnapshot = await get(friendRef);
   const currentUnread = unreadSnapshot.exists() ? unreadSnapshot.val() : 0;
-  updates[`friends/${receiverId}/${sender.uid}/unreadCount`] = currentUnread + 1;
-  
+  updates[`friends/${receiverId}/${sender.uid}/unreadCount`] =
+    currentUnread + 1;
+
   await update(ref(database), updates);
 }
 
@@ -228,26 +244,30 @@ export async function sendPrivateMessage(
 export function subscribePrivateMessages(
   userId1: string,
   userId2: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   callback: (messages: any[]) => void
 ): () => void {
   const chatId = getChatId(userId1, userId2);
   const messagesRef = ref(database, `privateMessages/${chatId}`);
-  const messagesQuery = query(messagesRef, orderByChild('createdAt'), limitToLast(100));
-  
-  const unsubscribe = onValue(messagesQuery, (snapshot) => {
+  const messagesQuery = query(
+    messagesRef,
+    orderByChild("createdAt"),
+    limitToLast(100)
+  );
+
+  return onValue(messagesQuery, (snapshot) => {
     if (!snapshot.exists()) {
       callback([]);
       return;
     }
-    
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const messages: any[] = [];
     snapshot.forEach((child) => {
       messages.push({ id: child.key, ...child.val() });
     });
     callback(messages);
   });
-
-  return () => off(messagesRef);
 }
 
 /**
@@ -260,9 +280,9 @@ export async function markMessagesAsRead(
   const chatId = getChatId(currentUserId, friendId);
   const messagesRef = ref(database, `privateMessages/${chatId}`);
   const snapshot = await get(messagesRef);
-  
+
   if (!snapshot.exists()) return;
-  
+
   const updates: Record<string, any> = {};
   snapshot.forEach((child) => {
     const msg = child.val();
@@ -270,10 +290,10 @@ export async function markMessagesAsRead(
       updates[`privateMessages/${chatId}/${child.key}/read`] = true;
     }
   });
-  
+
   // Reset unread count
   updates[`friends/${currentUserId}/${friendId}/unreadCount`] = 0;
-  
+
   if (Object.keys(updates).length > 0) {
     await update(ref(database), updates);
   }
@@ -287,21 +307,19 @@ export function subscribeUnreadCount(
   callback: (count: number) => void
 ): () => void {
   const friendsRef = ref(database, `friends/${userId}`);
-  
-  const unsubscribe = onValue(friendsRef, (snapshot) => {
+
+  return onValue(friendsRef, (snapshot) => {
     if (!snapshot.exists()) {
       callback(0);
       return;
     }
-    
+
     let totalUnread = 0;
     snapshot.forEach((child) => {
       totalUnread += child.val().unreadCount || 0;
     });
     callback(totalUnread);
   });
-
-  return () => off(friendsRef);
 }
 
 // ============================================
@@ -314,23 +332,25 @@ export function subscribeUnreadCount(
 export async function searchUsers(
   searchTerm: string,
   currentUserId: string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<any[]> {
   // Note: Firebase doesn't support full-text search
   // This searches in user profiles if we have them
-  const usersRef = ref(database, 'users');
+  const usersRef = ref(database, "users");
   const snapshot = await get(usersRef);
-  
+
   if (!snapshot.exists()) return [];
-  
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const users: any[] = [];
   const term = searchTerm.toLowerCase();
-  
+
   snapshot.forEach((child) => {
     const user = child.val();
     if (
       child.key !== currentUserId &&
       (user.displayName?.toLowerCase().includes(term) ||
-       user.email?.toLowerCase().includes(term))
+        user.email?.toLowerCase().includes(term))
     ) {
       users.push({
         odUserId: child.key,
@@ -338,7 +358,7 @@ export async function searchUsers(
       });
     }
   });
-  
+
   return users.slice(0, 20);
 }
 
@@ -368,14 +388,12 @@ export function subscribeUserStatus(
   callback: (status: { isOnline: boolean; lastSeen: number }) => void
 ): () => void {
   const statusRef = ref(database, `userStatus/${userId}`);
-  
-  const unsubscribe = onValue(statusRef, (snapshot) => {
+
+  return onValue(statusRef, (snapshot) => {
     if (!snapshot.exists()) {
       callback({ isOnline: false, lastSeen: 0 });
       return;
     }
     callback(snapshot.val());
   });
-
-  return () => off(statusRef);
 }

@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { Volume2 } from 'lucide-react';
+import { Volume2, Zap, Clock } from 'lucide-react';
 
 interface BadgeProps {
   variant?: 'default' | 'primary' | 'success' | 'warning' | 'info' | 'vietsub' | 'thuyetminh';
@@ -22,11 +22,11 @@ export function Badge({
       className={cn(
         'inline-flex items-center font-semibold uppercase tracking-wider',
         'backdrop-blur-md rounded-md',
-        
+
         // Size
         size === 'sm' && 'px-2 py-0.5 text-[10px]',
         size === 'md' && 'px-2.5 py-1 text-xs',
-        
+
         // Variants
         variant === 'default' && [
           'bg-white/[0.1] text-white/90 border border-white/[0.15]',
@@ -62,30 +62,38 @@ export function Badge({
 // Quality badge with automatic color
 export function QualityBadge({ quality }: { quality: string | undefined }) {
   if (!quality) return null;
-  
-  const variant = 
+
+  const variant =
     quality.includes('FHD') || quality.includes('4K') ? 'primary' :
-    quality.includes('HD') ? 'success' :
-    'warning';
-  
+      quality.includes('HD') ? 'success' :
+        'warning';
+
   return <Badge variant={variant}>{quality}</Badge>;
 }
 
 // Episode badge
-export function EpisodeBadge({ 
-  current, 
-  total 
-}: { 
-  current: string | undefined; 
+export function EpisodeBadge({
+  current,
+  total
+}: {
+  current: string | undefined;
   total?: string | undefined;
 }) {
   if (!current) return null;
-  
-  const isComplete = total && !total.includes('cập nhật');
-  const text = isComplete ? `${current}/${total}` : current;
-  
+
+  const isComplete = (total && !total.includes('cập nhật')) ||
+    current.toLowerCase().includes('hoàn tất') ||
+    current.toLowerCase().includes('full') ||
+    current.toLowerCase().includes('end');
+
+  const text = (total && !total.includes('cập nhật')) ? `${current}/${total}` : current;
+
   return (
-    <Badge variant={isComplete ? 'success' : 'info'}>
+    <Badge
+      variant="success"
+      className="gap-1"
+    >
+      {isComplete ? <Zap className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
       {text}
     </Badge>
   );
@@ -94,12 +102,12 @@ export function EpisodeBadge({
 // Language badge with special styling for Thuyết Minh
 export function LangBadge({ lang }: { lang: string | undefined }) {
   if (!lang) return null;
-  
-  const isThuyetMinh = lang.toLowerCase().includes('thuyết minh') || 
-                        lang.toLowerCase().includes('thuyet minh') ||
-                        lang.toLowerCase().includes('lồng tiếng') ||
-                        lang.toLowerCase().includes('long tieng');
-  
+
+  const isThuyetMinh = lang.toLowerCase().includes('thuyết minh') ||
+    lang.toLowerCase().includes('thuyet minh') ||
+    lang.toLowerCase().includes('lồng tiếng') ||
+    lang.toLowerCase().includes('long tieng');
+
   if (isThuyetMinh) {
     return (
       <Badge variant="thuyetminh" animated className="gap-1">
@@ -108,9 +116,9 @@ export function LangBadge({ lang }: { lang: string | undefined }) {
       </Badge>
     );
   }
-  
-  const isVietsub = lang.toLowerCase().includes('vietsub') || 
-                    lang.toLowerCase().includes('phụ đề');
-  
+
+  const isVietsub = lang.toLowerCase().includes('vietsub') ||
+    lang.toLowerCase().includes('phụ đề');
+
   return <Badge variant={isVietsub ? 'vietsub' : 'default'}>{lang}</Badge>;
 }

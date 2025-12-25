@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 import { AuthModal } from '@/components/auth';
@@ -9,7 +9,6 @@ import {
   push,
   onValue,
   off,
-  serverTimestamp,
   query,
   orderByChild,
   limitToLast,
@@ -27,7 +26,6 @@ import {
   Smile,
   Trash2,
   User,
-  ChevronDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -43,13 +41,12 @@ interface ChatMessage {
 
 interface LiveChatProps {
   movieSlug: string;
-  movieName: string;
 }
 
 // Popular emoji list
 const EMOJIS = ['😀', '😂', '🤣', '😍', '🥰', '😎', '🤩', '😢', '😱', '🔥', '❤️', '👍', '👎', '💯', '🎬', '🍿'];
 
-export function LiveChat({ movieSlug, movieName }: LiveChatProps) {
+export function LiveChat({ movieSlug }: LiveChatProps) {
   const { user } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -57,19 +54,25 @@ export function LiveChat({ movieSlug, movieName }: LiveChatProps) {
   const [isMinimized, setIsMinimized] = useState(false);
   const [showEmoji, setShowEmoji] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [onlineCount, setOnlineCount] = useState(0);
   const [unreadCount, setUnreadCount] = useState(0);
-  
+  const [now, setNow] = useState(Date.now());
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  // Update 'now' every minute for online status
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Subscribe to messages
   useEffect(() => {
     const chatRef = ref(database, `${DB_PATHS.chat}/${movieSlug}`);
     const chatQuery = query(chatRef, orderByChild('createdAt'), limitToLast(100));
 
-    const unsubscribe = onValue(chatQuery, (snapshot) => {
+    return onValue(chatQuery, (snapshot) => {
       if (!snapshot.exists()) {
         setMessages([]);
         return;
@@ -84,25 +87,23 @@ export function LiveChat({ movieSlug, movieName }: LiveChatProps) {
       });
 
       setMessages(data);
-      
+
       // Update unread count if chat is closed
       if (!isOpen && data.length > messages.length) {
         setUnreadCount((prev) => prev + (data.length - messages.length));
       }
     });
-
-    return () => off(chatRef);
   }, [movieSlug, isOpen, messages.length]);
 
   // Simulate online users (based on recent messages)
-  useEffect(() => {
+  const onlineCount = useMemo(() => {
     const recentUsers = new Set(
       messages
-        .filter((m) => Date.now() - m.createdAt < 5 * 60 * 1000) // Last 5 minutes
+        .filter((m) => now - m.createdAt < 5 * 60 * 1000) // Last 5 minutes
         .map((m) => m.userId)
     );
-    setOnlineCount(Math.max(recentUsers.size, 1));
-  }, [messages]);
+    return Math.max(recentUsers.size, 1);
+  }, [messages, now]);
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -112,11 +113,12 @@ export function LiveChat({ movieSlug, movieName }: LiveChatProps) {
   }, [messages, isOpen, isMinimized]);
 
   // Reset unread when opening
-  useEffect(() => {
-    if (isOpen) {
+  const toggleChat = () => {
+    if (!isOpen) {
       setUnreadCount(0);
     }
-  }, [isOpen]);
+    setIsOpen(!isOpen);
+  };
 
   const handleSend = async () => {
     if (!user) {
@@ -127,7 +129,7 @@ export function LiveChat({ movieSlug, movieName }: LiveChatProps) {
     if (!newMessage.trim()) return;
 
     const chatRef = ref(database, `${DB_PATHS.chat}/${movieSlug}`);
-    
+
     try {
       await push(chatRef, {
         userId: user.uid,
@@ -137,7 +139,7 @@ export function LiveChat({ movieSlug, movieName }: LiveChatProps) {
         createdAt: Date.now(),
         type: 'message',
       });
-      
+
       setNewMessage('');
       setShowEmoji(false);
       inputRef.current?.focus();
@@ -179,7 +181,7 @@ export function LiveChat({ movieSlug, movieName }: LiveChatProps) {
     return (
       <>
         <button
-          onClick={() => setIsOpen(true)}
+          onClick={toggleChat}
           className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-violet-600 to-purple-600 rounded-full shadow-lg shadow-violet-500/30 hover:shadow-violet-500/50 transition-all hover:scale-105 group"
         >
           <MessageCircle className="w-5 h-5" />
@@ -233,7 +235,7 @@ export function LiveChat({ movieSlug, movieName }: LiveChatProps) {
                 </p>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-1">
               <button
                 onClick={(e) => {
@@ -364,7 +366,7 @@ export function LiveChat({ movieSlug, movieName }: LiveChatProps) {
                   >
                     <Smile className="w-5 h-5" />
                   </button>
-                  
+
                   <input
                     ref={inputRef}
                     type="text"
@@ -375,7 +377,7 @@ export function LiveChat({ movieSlug, movieName }: LiveChatProps) {
                     className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-violet-500/50"
                     disabled={!user}
                   />
-                  
+
                   <button
                     onClick={handleSend}
                     disabled={!newMessage.trim()}
@@ -384,7 +386,7 @@ export function LiveChat({ movieSlug, movieName }: LiveChatProps) {
                     <Send className="w-5 h-5" />
                   </button>
                 </div>
-                
+
                 {!user && (
                   <button
                     onClick={() => setShowAuthModal(true)}

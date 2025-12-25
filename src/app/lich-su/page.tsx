@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
-import { getWatchHistory, removeFromHistory, subscribeToWatchHistory } from '@/services/movieService';
+import { removeFromHistory, subscribeToWatchHistory } from '@/services/movieService';
 import { WatchHistory } from '@/types/firebase';
 import { History, Play, Trash2, Clock, Film, AlertCircle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -17,7 +17,8 @@ export default function WatchHistoryPage() {
 
   useEffect(() => {
     if (!user) {
-      setLoading(false);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (loading) setLoading(false);
       return;
     }
 
@@ -28,11 +29,11 @@ export default function WatchHistoryPage() {
     });
 
     return () => unsubscribe();
-  }, [user]);
+  }, [user, loading]);
 
   const handleRemove = async (movieSlug: string, episodeSlug?: string) => {
     if (!user) return;
-    
+
     try {
       await removeFromHistory(user.uid, movieSlug, episodeSlug);
     } catch (error) {
@@ -157,11 +158,11 @@ export default function WatchHistoryPage() {
             </div>
             <h2 className="text-xl font-semibold mb-2">Chưa có lịch sử xem</h2>
             <p className="text-white/60 mb-6">
-              {filter === 'all' 
+              {filter === 'all'
                 ? 'Bạn chưa xem phim nào. Hãy khám phá ngay!'
                 : filter === 'watching'
-                ? 'Không có phim đang xem dở'
-                : 'Không có phim đã xem xong'}
+                  ? 'Không có phim đang xem dở'
+                  : 'Không có phim đã xem xong'}
             </p>
             <Link
               href="/"
@@ -172,7 +173,7 @@ export default function WatchHistoryPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredHistory.map((item) => (
+            {filteredHistory.map((item, index) => (
               <div
                 key={`${item.movieSlug}-${item.episodeSlug || 'full'}`}
                 className="glass-card rounded-xl overflow-hidden hover:border-white/20 transition-all group"
@@ -180,7 +181,7 @@ export default function WatchHistoryPage() {
                 <div className="flex gap-4 p-4">
                   {/* Poster */}
                   <Link
-                    href={item.episodeSlug 
+                    href={item.episodeSlug
                       ? `/xem-phim/${item.movieSlug}/${item.episodeSlug}`
                       : `/phim/${item.movieSlug}`
                     }
@@ -191,6 +192,8 @@ export default function WatchHistoryPage() {
                         src={item.moviePoster || '/placeholder.jpg'}
                         alt={item.movieName}
                         fill
+                        sizes="(max-width: 768px) 112px, 144px"
+                        priority={index < 2}
                         className="object-cover"
                       />
                       {/* Progress Bar */}
@@ -217,7 +220,7 @@ export default function WatchHistoryPage() {
                   {/* Info */}
                   <div className="flex-1 min-w-0">
                     <Link
-                      href={item.episodeSlug 
+                      href={item.episodeSlug
                         ? `/xem-phim/${item.movieSlug}/${item.episodeSlug}`
                         : `/phim/${item.movieSlug}`
                       }
@@ -256,7 +259,7 @@ export default function WatchHistoryPage() {
                     {/* Actions */}
                     <div className="flex items-center gap-2 mt-4">
                       <Link
-                        href={item.episodeSlug 
+                        href={item.episodeSlug
                           ? `/xem-phim/${item.movieSlug}/${item.episodeSlug}`
                           : `/phim/${item.movieSlug}`
                         }
@@ -267,7 +270,7 @@ export default function WatchHistoryPage() {
                       </Link>
                       <button
                         onClick={() => handleRemove(item.movieSlug, item.episodeSlug)}
-                        className="p-2 rounded-lg bg-white/5 hover:bg-red-500/20 hover:text-red-400 transition-all"
+                        className="w-9 h-9 flex items-center justify-center rounded-lg bg-white/5 hover:bg-red-500/20 hover:text-red-400 transition-all"
                         title="Xóa khỏi lịch sử"
                       >
                         <Trash2 className="w-4 h-4" />

@@ -1,18 +1,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   subscribeFriends,
   subscribeFriendRequests,
-  subscribeUnreadCount,
   acceptFriendRequest,
   rejectFriendRequest,
   removeFriend,
   searchUsers,
   sendFriendRequest,
 } from '@/services/socialService';
-import { UserPlus, Users, Bell, Search, Check, X, MessageCircle, Trash2, UserX } from 'lucide-react';
+import { UserPlus, Users, Bell, Search, Check, X, UserX } from 'lucide-react';
 
 interface Friend {
   odUserId: string;
@@ -30,6 +30,13 @@ interface FriendRequest {
   fromUserPhoto?: string;
 }
 
+interface SearchResult {
+  odUserId: string;
+  displayName: string;
+  photoURL?: string;
+  email?: string;
+}
+
 interface FriendsListProps {
   onSelectFriend?: (friend: Friend) => void;
   selectedFriendId?: string;
@@ -39,10 +46,10 @@ export default function FriendsList({ onSelectFriend, selectedFriendId }: Friend
   const { user } = useAuth();
   const [friends, setFriends] = useState<Friend[]>([]);
   const [requests, setRequests] = useState<FriendRequest[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
+  // const [unreadCount, setUnreadCount] = useState(0); // Unused
   const [activeTab, setActiveTab] = useState<'friends' | 'requests' | 'search'>('friends');
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -52,27 +59,28 @@ export default function FriendsList({ onSelectFriend, selectedFriendId }: Friend
     setLoading(true);
 
     const unsubFriends = subscribeFriends(user.uid, (data) => {
+      console.log('Friends data:', data);
       setFriends(data);
       setLoading(false);
     });
 
     const unsubRequests = subscribeFriendRequests(user.uid, setRequests);
-    const unsubUnread = subscribeUnreadCount(user.uid, setUnreadCount);
+    // const unsubUnread = subscribeUnreadCount(user.uid, setUnreadCount); // Unused
 
     return () => {
       unsubFriends();
       unsubRequests();
-      unsubUnread();
+      // unsubUnread();
     };
   }, [user]);
 
   const handleSearch = async () => {
     if (!user || !searchTerm.trim()) return;
-    
+
     setIsSearching(true);
     try {
       const results = await searchUsers(searchTerm, user.uid);
-      setSearchResults(results);
+      setSearchResults(results as SearchResult[]);
     } catch (error) {
       console.error('Search error:', error);
     } finally {
@@ -82,19 +90,19 @@ export default function FriendsList({ onSelectFriend, selectedFriendId }: Friend
 
   const handleSendRequest = async (toUserId: string) => {
     if (!user) return;
-    
+
     try {
       await sendFriendRequest(user, toUserId);
       // Remove from search results after sending
       setSearchResults((prev) => prev.filter((u) => u.odUserId !== toUserId));
-    } catch (error: any) {
-      alert(error.message || 'Không thể gửi lời mời');
+    } catch (error: unknown) {
+      alert((error as Error).message || 'Không thể gửi lời mời');
     }
   };
 
   const handleAcceptRequest = async (request: FriendRequest) => {
     if (!user) return;
-    
+
     try {
       await acceptFriendRequest(user, request);
     } catch (error) {
@@ -104,7 +112,7 @@ export default function FriendsList({ onSelectFriend, selectedFriendId }: Friend
 
   const handleRejectRequest = async (fromUserId: string) => {
     if (!user) return;
-    
+
     try {
       await rejectFriendRequest(user.uid, fromUserId);
     } catch (error) {
@@ -113,8 +121,10 @@ export default function FriendsList({ onSelectFriend, selectedFriendId }: Friend
   };
 
   const handleRemoveFriend = async (friendId: string) => {
-    if (!user || !confirm('Bạn có chắc muốn xóa bạn này?')) return;
-    
+    if (!user) return;
+    // Removed confirm for now to ensure action works
+    // if (!confirm('Bạn có chắc muốn xóa bạn này?')) return;
+
     try {
       await removeFriend(user.uid, friendId);
     } catch (error) {
@@ -126,7 +136,7 @@ export default function FriendsList({ onSelectFriend, selectedFriendId }: Friend
     if (!timestamp) return '';
     const now = Date.now();
     const diff = now - timestamp;
-    
+
     if (diff < 60000) return 'Vừa xong';
     if (diff < 3600000) return `${Math.floor(diff / 60000)} phút`;
     if (diff < 86400000) return `${Math.floor(diff / 3600000)} giờ`;
@@ -148,11 +158,10 @@ export default function FriendsList({ onSelectFriend, selectedFriendId }: Friend
       <div className="flex border-b border-white/10">
         <button
           onClick={() => setActiveTab('friends')}
-          className={`flex-1 px-4 py-3 flex items-center justify-center gap-2 transition-colors ${
-            activeTab === 'friends' 
-              ? 'bg-white/10 text-white' 
-              : 'text-zinc-400 hover:text-white hover:bg-white/5'
-          }`}
+          className={`flex-1 px-4 py-3 flex items-center justify-center gap-2 transition-colors ${activeTab === 'friends'
+            ? 'bg-white/10 text-white'
+            : 'text-zinc-400 hover:text-white hover:bg-white/5'
+            }`}
         >
           <Users className="w-4 h-4" />
           <span>Bạn bè</span>
@@ -162,14 +171,13 @@ export default function FriendsList({ onSelectFriend, selectedFriendId }: Friend
             </span>
           )}
         </button>
-        
+
         <button
           onClick={() => setActiveTab('requests')}
-          className={`flex-1 px-4 py-3 flex items-center justify-center gap-2 transition-colors ${
-            activeTab === 'requests' 
-              ? 'bg-white/10 text-white' 
-              : 'text-zinc-400 hover:text-white hover:bg-white/5'
-          }`}
+          className={`flex-1 px-4 py-3 flex items-center justify-center gap-2 transition-colors ${activeTab === 'requests'
+            ? 'bg-white/10 text-white'
+            : 'text-zinc-400 hover:text-white hover:bg-white/5'
+            }`}
         >
           <Bell className="w-4 h-4" />
           <span>Lời mời</span>
@@ -179,14 +187,13 @@ export default function FriendsList({ onSelectFriend, selectedFriendId }: Friend
             </span>
           )}
         </button>
-        
+
         <button
           onClick={() => setActiveTab('search')}
-          className={`flex-1 px-4 py-3 flex items-center justify-center gap-2 transition-colors ${
-            activeTab === 'search' 
-              ? 'bg-white/10 text-white' 
-              : 'text-zinc-400 hover:text-white hover:bg-white/5'
-          }`}
+          className={`flex-1 px-4 py-3 flex items-center justify-center gap-2 transition-colors ${activeTab === 'search'
+            ? 'bg-white/10 text-white'
+            : 'text-zinc-400 hover:text-white hover:bg-white/5'
+            }`}
         >
           <UserPlus className="w-4 h-4" />
           <span>Thêm bạn</span>
@@ -214,20 +221,21 @@ export default function FriendsList({ onSelectFriend, selectedFriendId }: Friend
                 <div
                   key={friend.odUserId}
                   onClick={() => onSelectFriend?.(friend)}
-                  className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all duration-200 group ${
-                    selectedFriendId === friend.odUserId
-                      ? 'bg-emerald-500/20 border border-emerald-500/50'
-                      : 'hover:bg-white/5 border border-transparent'
-                  }`}
+                  className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all duration-200 group ${selectedFriendId === friend.odUserId
+                    ? 'bg-emerald-500/20 border border-emerald-500/50'
+                    : 'hover:bg-white/5 border border-transparent'
+                    }`}
                 >
                   {/* Avatar */}
                   <div className="relative">
-                    <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-emerald-500 to-cyan-500">
+                    <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-emerald-500 to-cyan-500 relative">
                       {friend.userPhoto ? (
-                        <img
+                        <Image
                           src={friend.userPhoto}
                           alt={friend.userName}
-                          className="w-full h-full object-cover"
+                          fill
+                          sizes="48px"
+                          className="object-cover"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-white font-bold text-lg">
@@ -249,7 +257,7 @@ export default function FriendsList({ onSelectFriend, selectedFriendId }: Friend
                         <span className="px-1.5 py-0.5 text-xs bg-red-500 text-white rounded-full">
                           {friend.unreadCount}
                         </span>
-                      )}
+                      ) || null}
                     </div>
                     {friend.lastMessage && (
                       <p className="text-sm text-zinc-400 truncate">
@@ -270,10 +278,10 @@ export default function FriendsList({ onSelectFriend, selectedFriendId }: Friend
                         e.stopPropagation();
                         handleRemoveFriend(friend.odUserId);
                       }}
-                      className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-500/20 text-zinc-400 hover:text-red-400 transition-all"
+                      className="w-10 h-10 flex items-center justify-center rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 opacity-0 group-hover:opacity-100 transition-all"
                       title="Xóa bạn"
                     >
-                      <UserX className="w-4 h-4" />
+                      <UserX className="w-5 h-5" />
                     </button>
                   </div>
                 </div>
@@ -297,12 +305,13 @@ export default function FriendsList({ onSelectFriend, selectedFriendId }: Friend
                   className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10"
                 >
                   {/* Avatar */}
-                  <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-orange-500 to-pink-500">
+                  <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-orange-500 to-pink-500 relative">
                     {request.fromUserPhoto ? (
-                      <img
+                      <Image
                         src={request.fromUserPhoto}
                         alt={request.fromUserName}
-                        className="w-full h-full object-cover"
+                        fill
+                        className="object-cover"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-white font-bold text-lg">
@@ -387,12 +396,13 @@ export default function FriendsList({ onSelectFriend, selectedFriendId }: Friend
                     className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10"
                   >
                     {/* Avatar */}
-                    <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-violet-500 to-fuchsia-500">
+                    <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-violet-500 to-fuchsia-500 relative">
                       {user.photoURL ? (
-                        <img
+                        <Image
                           src={user.photoURL}
                           alt={user.displayName}
-                          className="w-full h-full object-cover"
+                          fill
+                          className="object-cover"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-white font-bold text-lg">

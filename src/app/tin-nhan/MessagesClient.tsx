@@ -67,7 +67,7 @@ export default function MessagesClient() {
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500">
+            <div className="p-2 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 flex items-center justify-center">
               <MessageCircle className="w-6 h-6" />
             </div>
             Tin nhắn

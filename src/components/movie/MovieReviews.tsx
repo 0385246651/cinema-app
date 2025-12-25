@@ -47,18 +47,23 @@ interface Review {
   likedBy?: Record<string, boolean>;
 }
 
+import { rateMovie, removeRating } from '@/services/movieService';
+
+// ... (other imports)
+
 interface MovieReviewsProps {
   movieSlug: string;
   movieName: string;
+  moviePoster?: string;
 }
 
-export function MovieReviews({ movieSlug, movieName }: MovieReviewsProps) {
+export function MovieReviews({ movieSlug, movieName, moviePoster }: MovieReviewsProps) {
   const { user } = useAuth();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
-  
+
   // Form state
   const [rating, setRating] = useState(5);
   const [content, setContent] = useState('');
@@ -99,7 +104,7 @@ export function MovieReviews({ movieSlug, movieName }: MovieReviewsProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!user) {
       setShowAuthModal(true);
       return;
@@ -109,10 +114,11 @@ export function MovieReviews({ movieSlug, movieName }: MovieReviewsProps) {
 
     setSubmitting(true);
     try {
+      // 1. Save to Comments (Public)
       const reviewsRef = ref(database, `${DB_PATHS.comments}/${movieSlug}`);
       const newReviewRef = push(reviewsRef);
-      
-      await set(newReviewRef, {
+
+      const reviewData = {
         userId: user.uid,
         userName: user.displayName || 'Người dùng',
         userPhoto: user.photoURL || null,
@@ -120,6 +126,17 @@ export function MovieReviews({ movieSlug, movieName }: MovieReviewsProps) {
         content: content.trim(),
         createdAt: Date.now(),
         likes: 0,
+      };
+
+      await set(newReviewRef, reviewData);
+
+      // 2. Save to User Ratings (Private/Profile)
+      await rateMovie(user.uid, {
+        movieSlug,
+        movieName,
+        moviePoster,
+        rating,
+        content: content.trim(),
       });
 
       setContent('');
@@ -132,15 +149,27 @@ export function MovieReviews({ movieSlug, movieName }: MovieReviewsProps) {
   };
 
   const handleEdit = async (reviewId: string) => {
+    if (!user) return;
     if (!editContent.trim()) return;
 
     try {
+      // 1. Update Comment
       const reviewRef = ref(database, `${DB_PATHS.comments}/${movieSlug}/${reviewId}`);
       await update(reviewRef, {
         content: editContent.trim(),
         rating: editRating,
         updatedAt: Date.now(),
       });
+
+      // 2. Update User Rating
+      await rateMovie(user!.uid, {
+        movieSlug,
+        movieName,
+        moviePoster,
+        rating: editRating,
+        content: editContent.trim(),
+      });
+
       setEditingId(null);
     } catch (error) {
       console.error('Error editing review:', error);
@@ -148,13 +177,25 @@ export function MovieReviews({ movieSlug, movieName }: MovieReviewsProps) {
   };
 
   const handleDelete = async (reviewId: string) => {
-    if (!confirm('Bạn có chắc muốn xóa đánh giá này?')) return;
+    if (!user) return;
 
+    // if (!confirm('Bạn có chắc muốn xóa đánh giá này?')) return;
+
+    // 1. Remove Comment first
     try {
       const reviewRef = ref(database, `${DB_PATHS.comments}/${movieSlug}/${reviewId}`);
       await remove(reviewRef);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting review:', error);
+      alert(`Không thể xóa bình luận: ${error.message || 'Lỗi không xác định'}`);
+      return;
+    }
+
+    // 2. Remove User Rating (Separate try-catch to not block UI if this fails)
+    try {
+      await removeRating(user!.uid, movieSlug);
+    } catch (error) {
+      console.error('Error removing rating:', error);
     }
   };
 
@@ -165,18 +206,18 @@ export function MovieReviews({ movieSlug, movieName }: MovieReviewsProps) {
     }
 
     const reviewRef = ref(database, `${DB_PATHS.comments}/${movieSlug}/${review.id}`);
-    const hasLiked = review.likedBy?.[user.uid];
+    const hasLiked = review.likedBy?.[user!.uid];
 
     try {
       if (hasLiked) {
         await update(reviewRef, {
           likes: (review.likes || 1) - 1,
-          [`likedBy/${user.uid}`]: null,
+          [`likedBy/${user!.uid}`]: null,
         });
       } else {
         await update(reviewRef, {
           likes: (review.likes || 0) + 1,
-          [`likedBy/${user.uid}`]: true,
+          [`likedBy/${user!.uid}`]: true,
         });
       }
     } catch (error) {
@@ -196,7 +237,7 @@ export function MovieReviews({ movieSlug, movieName }: MovieReviewsProps) {
     if (minutes < 60) return `${minutes} phút trước`;
     if (hours < 24) return `${hours} giờ trước`;
     if (days < 7) return `${days} ngày trước`;
-    
+
     return date.toLocaleDateString('vi-VN');
   };
 
@@ -214,7 +255,7 @@ export function MovieReviews({ movieSlug, movieName }: MovieReviewsProps) {
           Đánh giá & Bình luận
           <span className="text-sm font-normal text-white/50">({reviews.length})</span>
         </h2>
-        
+
         {reviews.length > 0 && (
           <div className="flex items-center gap-2 text-sm">
             <StarRating value={avgRating} readonly size="sm" />
@@ -230,7 +271,7 @@ export function MovieReviews({ movieSlug, movieName }: MovieReviewsProps) {
             <MessageSquare className="w-4 h-4 text-violet-400" />
             Viết đánh giá của bạn
           </h3>
-          
+
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Rating */}
             <div className="flex items-center gap-3">
@@ -303,13 +344,15 @@ export function MovieReviews({ movieSlug, movieName }: MovieReviewsProps) {
                   <div className="flex justify-end gap-2">
                     <button
                       onClick={() => setEditingId(null)}
-                      className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+                      className="w-10 h-10 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+                      title="Hủy"
                     >
                       <X className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => handleEdit(review.id)}
-                      className="p-2 rounded-lg bg-violet-600 hover:bg-violet-700 transition-colors"
+                      className="w-10 h-10 flex items-center justify-center rounded-lg bg-violet-600 hover:bg-violet-700 transition-colors"
+                      title="Lưu"
                     >
                       <Check className="w-4 h-4" />
                     </button>
@@ -334,7 +377,7 @@ export function MovieReviews({ movieSlug, movieName }: MovieReviewsProps) {
                           <User className="w-5 h-5" />
                         )}
                       </div>
-                      
+
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-medium">{review.userName}</span>
@@ -362,19 +405,23 @@ export function MovieReviews({ movieSlug, movieName }: MovieReviewsProps) {
                     {review.userId === user?.uid && (
                       <div className="flex items-center gap-1">
                         <button
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setEditingId(review.id);
                             setEditContent(review.content);
                             setEditRating(review.rating);
                           }}
-                          className="p-1.5 rounded-lg hover:bg-white/10 transition-colors text-white/50 hover:text-white"
+                          className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors text-white/50 hover:text-white"
                           title="Sửa"
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleDelete(review.id)}
-                          className="p-1.5 rounded-lg hover:bg-red-500/20 transition-colors text-white/50 hover:text-red-400"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(review.id);
+                          }}
+                          className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-500/20 transition-colors text-white/50 hover:text-red-400"
                           title="Xóa"
                         >
                           <Trash2 className="w-4 h-4" />

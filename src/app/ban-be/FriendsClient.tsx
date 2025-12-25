@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import FriendsList from '@/components/social/FriendsList';
 import { Users, UserPlus, Search, MessageCircle } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { subscribeFriends, subscribeFriendRequests, searchUsers, sendFriendRequest } from '@/services/socialService';
 
 interface Friend {
@@ -17,13 +18,27 @@ interface Friend {
   unreadCount?: number;
 }
 
+interface FriendRequest {
+  id: string;
+  fromUserId: string;
+  fromUserName: string;
+  fromUserPhoto?: string;
+}
+
+interface SearchResult {
+  odUserId: string;
+  displayName: string;
+  photoURL?: string;
+  email?: string;
+}
+
 export default function FriendsClient() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const [friends, setFriends] = useState<Friend[]>([]);
-  const [requests, setRequests] = useState<any[]>([]);
+  const [requests, setRequests] = useState<FriendRequest[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
@@ -46,7 +61,7 @@ export default function FriendsClient() {
 
   const handleSearch = async () => {
     if (!user || !searchTerm.trim()) return;
-    
+
     setIsSearching(true);
     try {
       const results = await searchUsers(searchTerm, user.uid);
@@ -60,13 +75,13 @@ export default function FriendsClient() {
 
   const handleSendRequest = async (toUserId: string) => {
     if (!user) return;
-    
+
     try {
       await sendFriendRequest(user, toUserId);
       setSearchResults((prev) => prev.filter((u) => u.odUserId !== toUserId));
       alert('Đã gửi lời mời kết bạn!');
-    } catch (error: any) {
-      alert(error.message || 'Không thể gửi lời mời');
+    } catch (error: unknown) {
+      alert((error as Error).message || 'Không thể gửi lời mời');
     }
   };
 
@@ -134,12 +149,13 @@ export default function FriendsClient() {
                       key={result.odUserId}
                       className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10"
                     >
-                      <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-violet-500 to-fuchsia-500">
+                      <div className="w-12 h-12 relative rounded-full overflow-hidden bg-gradient-to-br from-violet-500 to-fuchsia-500">
                         {result.photoURL ? (
-                          <img
+                          <Image
                             src={result.photoURL}
                             alt={result.displayName}
-                            className="w-full h-full object-cover"
+                            fill
+                            className="object-cover"
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-white font-bold text-lg">
@@ -176,7 +192,7 @@ export default function FriendsClient() {
                 <Users className="w-5 h-5 text-violet-400" />
                 Danh sách bạn bè ({friends.length})
               </h3>
-              
+
               {friends.length === 0 ? (
                 <div className="text-center py-12 text-zinc-400">
                   <Users className="w-16 h-16 mx-auto mb-4 opacity-30" />
@@ -190,12 +206,13 @@ export default function FriendsClient() {
                       key={friend.odUserId}
                       className="flex items-center gap-3 p-4 rounded-xl bg-white/5 border border-white/10 hover:border-violet-500/30 transition-all group"
                     >
-                      <div className="w-14 h-14 rounded-full overflow-hidden bg-gradient-to-br from-emerald-500 to-cyan-500 flex-shrink-0">
+                      <div className="w-14 h-14 relative rounded-full overflow-hidden bg-gradient-to-br from-emerald-500 to-cyan-500 flex-shrink-0">
                         {friend.userPhoto ? (
-                          <img
+                          <Image
                             src={friend.userPhoto}
                             alt={friend.userName}
-                            className="w-full h-full object-cover"
+                            fill
+                            className="object-cover"
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-white font-bold text-xl">
@@ -215,7 +232,7 @@ export default function FriendsClient() {
                       </div>
                       <Link
                         href="/tin-nhan"
-                        className="p-2 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 opacity-0 group-hover:opacity-100 transition-all"
+                        className="w-10 h-10 flex items-center justify-center rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 opacity-0 group-hover:opacity-100 transition-all"
                         title="Nhắn tin"
                       >
                         <MessageCircle className="w-5 h-5" />
@@ -240,7 +257,7 @@ export default function FriendsClient() {
                   </span>
                 )}
               </h3>
-              
+
               <FriendsList />
             </div>
 

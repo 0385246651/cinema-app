@@ -33,7 +33,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
   const pagination = data?.data?.params?.pagination;
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 pt-16">
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl md:text-3xl font-bold mb-2">

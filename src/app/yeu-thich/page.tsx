@@ -4,9 +4,9 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
-import { getFavorites, removeFromFavorites, subscribeToFavorites } from '@/services/movieService';
+import { removeFromFavorites, subscribeToFavorites } from '@/services/movieService';
 import { FavoriteMovie } from '@/types/firebase';
-import { Heart, Play, Trash2, Film, AlertCircle, Loader2, Grid, List } from 'lucide-react';
+import { Heart, Play, Trash2, AlertCircle, Loader2, Grid, List } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function FavoritesPage() {
@@ -17,7 +17,8 @@ export default function FavoritesPage() {
 
   useEffect(() => {
     if (!user) {
-      setLoading(false);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (loading) setLoading(false);
       return;
     }
 
@@ -27,11 +28,11 @@ export default function FavoritesPage() {
     });
 
     return () => unsubscribe();
-  }, [user]);
+  }, [user, loading]);
 
   const handleRemove = async (movieSlug: string) => {
     if (!user) return;
-    
+
     try {
       await removeFromFavorites(user.uid, movieSlug);
     } catch (error) {
@@ -171,7 +172,7 @@ export default function FavoritesPage() {
                 </div>
                 <button
                   onClick={() => handleRemove(item.movieSlug)}
-                  className="absolute top-2 right-2 p-2 rounded-lg bg-black/50 backdrop-blur-sm opacity-0 group-hover:opacity-100 hover:bg-red-500/80 transition-all"
+                  className="absolute top-2 right-2 w-9 h-9 flex items-center justify-center rounded-lg bg-black/50 backdrop-blur-sm opacity-0 group-hover:opacity-100 hover:bg-red-500/80 transition-all"
                   title="Xóa khỏi yêu thích"
                 >
                   <Trash2 className="w-4 h-4" />
