@@ -69,8 +69,12 @@ export function VideoPlayer({
   const [volume, setVolume] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [resumeTime, setResumeTime] = useState<number | null>(null);
+  const [showSkipBackward, setShowSkipBackward] = useState(false);
+  const [showSkipForward, setShowSkipForward] = useState(false);
 
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastTapTimeRef = useRef<number>(0);
+  const lastTapSideRef = useRef<'left' | 'right' | null>(null);
 
   // Load saved progress when component mounts
   useEffect(() => {
@@ -319,11 +323,25 @@ export function VideoPlayer({
 
   const toggleFullscreen = async () => {
     const container = containerRef.current;
+    const video = videoRef.current;
     if (!container) return;
 
-    if (!document.fullscreenElement) {
+    // Check if we're in fullscreen (including iOS)
+    const isCurrentlyFullscreen = document.fullscreenElement ||
+      (document as Document & { webkitFullscreenElement?: Element }).webkitFullscreenElement;
+
+    if (!isCurrentlyFullscreen) {
       try {
-        await container.requestFullscreen();
+        // Try standard fullscreen first
+        if (container.requestFullscreen) {
+          await container.requestFullscreen();
+        } else if ('webkitRequestFullscreen' in container) {
+          // Safari desktop
+          await (container as unknown as { webkitRequestFullscreen: () => Promise<void> }).webkitRequestFullscreen();
+        } else if (video && (video as HTMLVideoElement & { webkitEnterFullscreen?: () => void }).webkitEnterFullscreen) {
+          // iOS Safari - fullscreen on video element only
+          (video as HTMLVideoElement & { webkitEnterFullscreen: () => void }).webkitEnterFullscreen();
+        }
         setIsFullscreen(true);
 
         // Try to lock screen orientation to landscape on mobile
@@ -335,10 +353,23 @@ export function VideoPlayer({
           }
         }
       } catch {
-        // Fullscreen request failed
+        // Fullscreen request failed - try iOS fallback
+        if (video && (video as HTMLVideoElement & { webkitEnterFullscreen?: () => void }).webkitEnterFullscreen) {
+          try {
+            (video as HTMLVideoElement & { webkitEnterFullscreen: () => void }).webkitEnterFullscreen();
+            setIsFullscreen(true);
+          } catch {
+            // iOS fullscreen also failed
+          }
+        }
       }
     } else {
-      document.exitFullscreen();
+      // Exit fullscreen
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if ((document as Document & { webkitExitFullscreen?: () => void }).webkitExitFullscreen) {
+        (document as Document & { webkitExitFullscreen: () => void }).webkitExitFullscreen();
+      }
       setIsFullscreen(false);
 
       // Unlock screen orientation
@@ -373,6 +404,41 @@ export function VideoPlayer({
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
+  // Handle double-tap to skip on mobile
+  const handleDoubleTap = (e: React.TouchEvent<HTMLDivElement>) => {
+    const touch = e.changedTouches[0];
+    const container = containerRef.current;
+    if (!touch || !container) return;
+
+    const rect = container.getBoundingClientRect();
+    const tapX = touch.clientX - rect.left;
+    const tapSide = tapX < rect.width / 2 ? 'left' : 'right';
+
+    const now = Date.now();
+    const timeDiff = now - lastTapTimeRef.current;
+
+    // Check if double-tap (within 300ms and same side)
+    if (timeDiff < 300 && lastTapSideRef.current === tapSide) {
+      // Double-tap detected!
+      if (tapSide === 'left') {
+        skip(-10);
+        setShowSkipBackward(true);
+        setTimeout(() => setShowSkipBackward(false), 500);
+      } else {
+        skip(10);
+        setShowSkipForward(true);
+        setTimeout(() => setShowSkipForward(false), 500);
+      }
+      // Reset to prevent triple-tap
+      lastTapTimeRef.current = 0;
+      lastTapSideRef.current = null;
+    } else {
+      // First tap
+      lastTapTimeRef.current = now;
+      lastTapSideRef.current = tapSide;
+    }
+  };
+
   if (error) {
     return (
       <div className="relative aspect-video bg-black/50 rounded-2xl flex items-center justify-center">
@@ -395,7 +461,28 @@ export function VideoPlayer({
       className="relative aspect-video bg-black rounded-2xl overflow-hidden group"
       onMouseMove={handleMouseMove}
       onMouseLeave={() => isPlaying && setShowControls(false)}
+      onTouchEnd={handleDoubleTap}
     >
+      {/* Double-tap Skip Feedback - Left (Backward) */}
+      {showSkipBackward && (
+        <div className="absolute left-4 top-1/2 -translate-y-1/2 z-30 pointer-events-none animate-pulse">
+          <div className="flex flex-col items-center gap-1 bg-black/60 rounded-full px-4 py-3">
+            <SkipBack className="w-8 h-8 text-white" />
+            <span className="text-white text-sm font-medium">-10s</span>
+          </div>
+        </div>
+      )}
+
+      {/* Double-tap Skip Feedback - Right (Forward) */}
+      {showSkipForward && (
+        <div className="absolute right-4 top-1/2 -translate-y-1/2 z-30 pointer-events-none animate-pulse">
+          <div className="flex flex-col items-center gap-1 bg-black/60 rounded-full px-4 py-3">
+            <SkipForward className="w-8 h-8 text-white" />
+            <span className="text-white text-sm font-medium">+10s</span>
+          </div>
+        </div>
+      )}
+
       {/* Video */}
       <video
         ref={videoRef}
@@ -514,6 +601,26 @@ export function VideoPlayer({
             >
               <SkipForward className="w-3.5 h-3.5 md:w-5 md:h-5" />
             </button>
+
+            {/* Prev/Next Episode - Mobile */}
+            {hasPrev && onPrev && (
+              <button
+                onClick={onPrev}
+                className="md:hidden p-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
+                title="Tập trước"
+              >
+                <SkipBack className="w-4 h-4" />
+              </button>
+            )}
+            {hasNext && onNext && (
+              <button
+                onClick={onNext}
+                className="md:hidden p-1.5 rounded-lg bg-violet-600 hover:bg-violet-700 transition-colors"
+                title="Tập tiếp theo"
+              >
+                <SkipForward className="w-4 h-4" />
+              </button>
+            )}
 
             {/* Volume */}
             <div className="hidden md:flex items-center gap-2">
