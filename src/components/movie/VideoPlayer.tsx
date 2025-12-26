@@ -317,16 +317,38 @@ export function VideoPlayer({
     setProgress(parseFloat(e.target.value));
   };
 
-  const toggleFullscreen = () => {
+  const toggleFullscreen = async () => {
     const container = containerRef.current;
     if (!container) return;
 
     if (!document.fullscreenElement) {
-      container.requestFullscreen();
-      setIsFullscreen(true);
+      try {
+        await container.requestFullscreen();
+        setIsFullscreen(true);
+
+        // Try to lock screen orientation to landscape on mobile
+        if (screen.orientation && 'lock' in screen.orientation) {
+          try {
+            await (screen.orientation as ScreenOrientation & { lock: (orientation: string) => Promise<void> }).lock('landscape');
+          } catch {
+            // Orientation lock not supported or failed - ignore
+          }
+        }
+      } catch {
+        // Fullscreen request failed
+      }
     } else {
       document.exitFullscreen();
       setIsFullscreen(false);
+
+      // Unlock screen orientation
+      if (screen.orientation && 'unlock' in screen.orientation) {
+        try {
+          (screen.orientation as ScreenOrientation & { unlock: () => void }).unlock();
+        } catch {
+          // Ignore unlock errors
+        }
+      }
     }
   };
 
