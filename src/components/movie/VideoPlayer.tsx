@@ -324,23 +324,38 @@ export function VideoPlayer({
   const toggleFullscreen = async () => {
     const container = containerRef.current;
     const video = videoRef.current;
-    if (!container) return;
+    if (!container || !video) return;
 
     // Check if we're in fullscreen (including iOS)
     const isCurrentlyFullscreen = document.fullscreenElement ||
-      (document as Document & { webkitFullscreenElement?: Element }).webkitFullscreenElement;
+      (document as Document & { webkitFullscreenElement?: Element }).webkitFullscreenElement ||
+      (video as HTMLVideoElement & { webkitDisplayingFullscreen?: boolean }).webkitDisplayingFullscreen;
 
     if (!isCurrentlyFullscreen) {
+      // Check for iOS Safari first (uses webkitEnterFullscreen on video element)
+      const videoWithWebkit = video as HTMLVideoElement & {
+        webkitEnterFullscreen?: () => void;
+        webkitSupportsFullscreen?: boolean;
+      };
+
+      if (videoWithWebkit.webkitSupportsFullscreen && videoWithWebkit.webkitEnterFullscreen) {
+        // iOS Safari - fullscreen on video element directly
+        try {
+          videoWithWebkit.webkitEnterFullscreen();
+          setIsFullscreen(true);
+          return;
+        } catch {
+          // Continue to try other methods
+        }
+      }
+
       try {
-        // Try standard fullscreen first
+        // Try standard fullscreen on container
         if (container.requestFullscreen) {
           await container.requestFullscreen();
         } else if ('webkitRequestFullscreen' in container) {
           // Safari desktop
           await (container as unknown as { webkitRequestFullscreen: () => Promise<void> }).webkitRequestFullscreen();
-        } else if (video && (video as HTMLVideoElement & { webkitEnterFullscreen?: () => void }).webkitEnterFullscreen) {
-          // iOS Safari - fullscreen on video element only
-          (video as HTMLVideoElement & { webkitEnterFullscreen: () => void }).webkitEnterFullscreen();
         }
         setIsFullscreen(true);
 
@@ -353,20 +368,26 @@ export function VideoPlayer({
           }
         }
       } catch {
-        // Fullscreen request failed - try iOS fallback
-        if (video && (video as HTMLVideoElement & { webkitEnterFullscreen?: () => void }).webkitEnterFullscreen) {
-          try {
-            (video as HTMLVideoElement & { webkitEnterFullscreen: () => void }).webkitEnterFullscreen();
-            setIsFullscreen(true);
-          } catch {
-            // iOS fullscreen also failed
-          }
-        }
+        // Fullscreen request failed
       }
     } else {
       // Exit fullscreen
+      const videoWithWebkit = video as HTMLVideoElement & { webkitExitFullscreen?: () => void };
+
+      if (videoWithWebkit.webkitExitFullscreen) {
+        try {
+          videoWithWebkit.webkitExitFullscreen();
+        } catch {
+          // Ignore
+        }
+      }
+
       if (document.exitFullscreen) {
-        document.exitFullscreen();
+        try {
+          document.exitFullscreen();
+        } catch {
+          // Ignore
+        }
       } else if ((document as Document & { webkitExitFullscreen?: () => void }).webkitExitFullscreen) {
         (document as Document & { webkitExitFullscreen: () => void }).webkitExitFullscreen();
       }
