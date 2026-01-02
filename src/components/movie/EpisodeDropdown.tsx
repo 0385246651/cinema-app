@@ -42,24 +42,24 @@ export function EpisodeDropdown({ episodes, currentSlug, movieSlug, onEpisodeSel
     <div className="space-y-3">
       {/* Server Selection - Horizontal Buttons */}
       {episodes.length > 1 && (
-        <div className="flex items-center gap-2 flex-wrap">
-          <Server className="w-4 h-4 text-white/50 flex-shrink-0" />
-          <div className="flex flex-wrap gap-2">
-            {episodes.map((server, index) => (
-              <button
-                key={server.server_name}
-                onClick={() => setActiveServer(index)}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200",
-                  activeServer === index
-                    ? "bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-lg shadow-violet-500/30"
-                    : "bg-white/5 text-white/70 hover:bg-white/10 hover:text-white border border-white/10"
-                )}
-              >
-                {server.server_name}
-              </button>
-            ))}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/[0.05] flex-shrink-0">
+            <Server className="w-4 h-4 text-white/50" />
           </div>
+          {episodes.map((server, index) => (
+            <button
+              key={server.server_name}
+              onClick={() => setActiveServer(index)}
+              className={cn(
+                "flex items-center justify-center px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200",
+                activeServer === index
+                  ? "bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-lg shadow-violet-500/30"
+                  : "bg-white/5 text-white/70 hover:bg-white/10 hover:text-white border border-white/10"
+              )}
+            >
+              {server.server_name}
+            </button>
+          ))}
         </div>
       )}
 

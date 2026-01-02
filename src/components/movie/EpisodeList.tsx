@@ -28,14 +28,16 @@ export function EpisodeList({ episodes, currentSlug, movieSlug }: EpisodeListPro
   return (
     <GlassCard className="p-4 md:p-6" hover={false}>
       {/* Server Tabs */}
-      <div className="flex items-center gap-2 mb-4 pb-4 border-b border-white/[0.1] overflow-x-auto">
-        <Server className="w-4 h-4 text-white/50 flex-shrink-0" />
+      <div className="flex flex-wrap items-center gap-2 mb-4 pb-4 border-b border-white/[0.1]">
+        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/[0.05] flex-shrink-0">
+          <Server className="w-4 h-4 text-white/50" />
+        </div>
         {episodes.map((server, index) => (
           <button
             key={server.server_name}
             onClick={() => setActiveServer(index)}
             className={cn(
-              'px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all',
+              'flex items-center justify-center px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all',
               activeServer === index
                 ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white'
                 : 'bg-white/[0.05] text-white/70 hover:bg-white/[0.1] hover:text-white'
