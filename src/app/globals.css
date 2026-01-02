@@ -54,6 +54,10 @@
   --color-foreground: var(--text-primary);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  
+  /* Large TV breakpoints */
+  --breakpoint-3xl: 2000px;
+  --breakpoint-4xl: 3000px;
 }
 
 * {

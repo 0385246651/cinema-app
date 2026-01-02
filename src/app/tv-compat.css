@@ -95,6 +95,163 @@
   }
 }
 
+/* ============================================
+   4K / LARGE TV (50+ inch) SUPPORT
+   2K: 2560x1440 | 4K: 3840x2160
+   ============================================ */
+
+/* 2K TVs (1440p) - ~40-50 inch */
+@media screen and (min-width: 2000px) {
+  html {
+    font-size: 20px;
+  }
+  
+  body {
+    font-size: 1.125rem;
+  }
+  
+  h1 { font-size: 3.5rem; }
+  h2 { font-size: 2.75rem; }
+  h3 { font-size: 2rem; }
+  h4 { font-size: 1.5rem; }
+  
+  /* Expand container for 2K */
+  .container {
+    max-width: 1800px !important;
+  }
+  
+  /* Larger buttons */
+  .glass-button {
+    padding: 1.25rem 2.5rem;
+    font-size: 1.25rem;
+    border-radius: 16px;
+  }
+  
+  /* Larger movie cards */
+  .movie-card {
+    border-width: 2px;
+  }
+  
+  /* Enhanced focus for remote */
+  button:focus,
+  a:focus,
+  [role="button"]:focus {
+    outline: 4px solid #8b5cf6 !important;
+    outline-offset: 4px !important;
+  }
+  
+  /* Larger badges */
+  .badge {
+    padding: 6px 14px;
+    font-size: 0.875rem;
+  }
+  
+  /* Larger navbar */
+  .glass-navbar {
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+}
+
+/* 4K TVs (2160p) - 50+ inch */
+@media screen and (min-width: 3000px) {
+  html {
+    font-size: 24px;
+  }
+  
+  body {
+    font-size: 1.25rem;
+    line-height: 1.7;
+  }
+  
+  h1 { font-size: 4.5rem; }
+  h2 { font-size: 3.5rem; }
+  h3 { font-size: 2.5rem; }
+  h4 { font-size: 2rem; }
+  p { font-size: 1.25rem; }
+  
+  /* Full width container for 4K */
+  .container {
+    max-width: 3200px !important;
+    padding-left: 3rem;
+    padding-right: 3rem;
+  }
+  
+  /* Much larger interactive elements */
+  .glass-button {
+    padding: 1.5rem 3rem;
+    font-size: 1.5rem;
+    border-radius: 20px;
+    min-height: 64px;
+  }
+  
+  /* Larger gap for better visibility */
+  .gap-4 { gap: 1.5rem !important; }
+  .gap-6 { gap: 2rem !important; }
+  
+  /* Very prominent focus states */
+  button:focus,
+  a:focus,
+  [role="button"]:focus,
+  [tabindex]:focus {
+    outline: 6px solid #8b5cf6 !important;
+    outline-offset: 6px !important;
+    transform: scale(1.02);
+  }
+  
+  /* Larger cards with more padding */
+  .glass-card {
+    padding: 2rem;
+    border-radius: 24px;
+    border-width: 2px;
+  }
+  
+  /* Larger badges */
+  .badge {
+    padding: 8px 18px;
+    font-size: 1rem;
+    border-radius: 10px;
+  }
+  
+  /* Larger navbar */
+  .glass-navbar {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+  }
+  
+  /* Larger player controls */
+  video + div button {
+    min-width: 56px;
+    min-height: 56px;
+  }
+  
+  /* Larger search input */
+  .glass-input {
+    padding: 1.25rem 1.5rem;
+    font-size: 1.375rem;
+    border-radius: 16px;
+  }
+  
+  /* Larger icons */
+  svg {
+    min-width: 1.5rem;
+    min-height: 1.5rem;
+  }
+}
+
+/* Ultra-wide 4K (some 55-65 inch TVs) */
+@media screen and (min-width: 3840px) {
+  .container {
+    max-width: 3600px !important;
+    padding-left: 4rem;
+    padding-right: 4rem;
+  }
+  
+  html {
+    font-size: 28px;
+  }
+}
+
 /* Focus styles for TV remote navigation */
 .tv-focusable:focus {
   outline: 4px solid #8b5cf6;
