@@ -627,7 +627,7 @@ export function VideoPlayer({
             {hasPrev && onPrev && (
               <button
                 onClick={onPrev}
-                className="md:hidden p-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
+                className="md:hidden flex items-center justify-center w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
                 title="Tập trước"
               >
                 <SkipBack className="w-4 h-4" />
@@ -636,7 +636,7 @@ export function VideoPlayer({
             {hasNext && onNext && (
               <button
                 onClick={onNext}
-                className="md:hidden p-1.5 rounded-lg bg-violet-600 hover:bg-violet-700 transition-colors"
+                className="md:hidden flex items-center justify-center w-8 h-8 rounded-lg bg-violet-600 hover:bg-violet-700 transition-colors"
                 title="Tập tiếp theo"
               >
                 <SkipForward className="w-4 h-4" />
